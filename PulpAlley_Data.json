@@ -1000,10 +1000,465 @@
       }
     ]
   },
-  "perks": [],
-  "associateAbilities": [],
-  "weapons": { "ranged": [], "melee": [] },
-  "genres": [],
-  "secretSocieties": [],
-  "reputationTable": []
+  "perks": [
+    {
+      "name": "Dominion", "slotCost": 0, "category": "background",
+      "description": "This perk grants access to the Minions, Gifts, and Cult assets. You cannot use your Resource points to select Backup, Contacts, or Gear assets.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Altar", "slotCost": 1, "category": "background",
+      "description": "During set-up roll 1d6. On a 4+ you may select two Level 1 Minions or one Level 2 Minion to join your league for this scenario.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Amphibians", "slotCost": 1, "category": "background",
+      "description": "One or more characters on this roster may include the Aquatic ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Base", "slotCost": 1, "category": "background",
+      "description": "During set-up roll 1d6. On a 4+ you gain +1 Resource point (Backup, Contacts, or Gear) for an asset, vehicle, or mount. This point cannot be saved.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Companions", "slotCost": 1, "category": "background",
+      "description": "Each Ally on your league roster starts with one additional ability. This league roster can never include a Sidekick (level 3) character.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": "companions"
+    },
+    {
+      "name": "Garage", "slotCost": 1, "category": "background",
+      "description": "During set-up, your league receives +1 Gear point for a vehicle or modifications. This point cannot be saved.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Jack of All Trades", "slotCost": 1, "category": "background",
+      "description": "During set-up, you may spend one Tips, Contacts, Gear, or Backup point to select a level 1 ability for your Leader. This ability lasts for the duration of this scenario.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Keen Senses", "slotCost": 1, "category": "background",
+      "description": "Once per turn, you may give one of your characters a +1 bonus to dodge a peril.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Long Range", "slotCost": 1, "category": "background",
+      "description": "Characters in this league ignore the \u20131 penalty for long range. Characters in this league may re-roll 1 Shoot die during their activation if they do not move.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Mastermind", "slotCost": 1, "category": "background",
+      "description": "Your league roster does not include a Leader (Level 4) character. Instead, select a free (0 slot) Sidekick to fill the Leader role for scenarios. Additionally, your league receives 6 extra roster slots to select level 1 and level 2 characters only.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": "mastermind"
+    },
+    {
+      "name": "On the Run", "slotCost": 1, "category": "background",
+      "description": "At the end of set-up, all your unused Tips, Contacts, Gear, and Backup points are lost. Once per turn, after a challenge is revealed for one of your characters, you may replace it with a new challenge drawn from the deck.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Reanimated", "slotCost": 1, "category": "background",
+      "description": "One or more characters on this roster may include the Reanimated ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Resourceful", "slotCost": 1, "category": "background",
+      "description": "Once per turn, as an action for one of your characters, you may discard and then draw 1 Fortune card.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Short Range", "slotCost": 1, "category": "background",
+      "description": "Characters in this league cannot shoot over 12\". Characters in this league may re-roll one Brawl die during their own activation.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Specialists", "slotCost": 1, "category": "background",
+      "description": "Reduce three of your leader\u2019s skills by one dice-type. All other colleagues raise one skill to the next higher dice-type. Note, your Leader cannot have any no-dice skills.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": "specialists"
+    },
+    {
+      "name": "Stable", "slotCost": 1, "category": "background",
+      "description": "During set-up, your league receives +1 Gear point for a mount or mount abilities. This point cannot be saved.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Well Armed", "slotCost": 1, "category": "background",
+      "description": "Once per turn, before you roll Shoot or Brawl for one of your characters, you may cancel a \u20131 penalty.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Workshop", "slotCost": 1, "category": "background",
+      "description": "During set-up, your league receives +1 Gear point for a gun or modifications. This point cannot be saved.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Ancient Sect", "slotCost": 2, "category": "background",
+      "description": "Dominion required. During set-up, roll your Leader\u2019s Finesse dice. Each success (4+) adds a +1 Contacts point for selecting Cult assets. These points cannot be saved.",
+      "prerequisites": ["Dominion"], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Animals", "slotCost": 2, "category": "background",
+      "description": "One or more characters on this roster may include the Animal ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Bastion of Science", "slotCost": 2, "category": "background",
+      "description": "During set-up, roll your Leader\u2019s Cunning dice. Each success (4+) adds +1 Gear point for selecting assets. These points cannot be saved.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Call to Arms", "slotCost": 2, "category": "background",
+      "description": "During set-up, roll your Leader\u2019s Might dice. Each success (4+) adds +1 Backup point for selecting level 1 or level 2 Backup characters. These points cannot be saved.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Company of Heroes", "slotCost": 2, "category": "background",
+      "description": "Your league may include a second Sidekick. In addition to the cost of this perk, this second Sidekick also requires 3 roster slots.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Dark Pact", "slotCost": 2, "category": "background",
+      "description": "Dominion required. During set-up, roll your Leader\u2019s Cunning dice. Each success (4+) adds +1 Gear point for selecting Gifts assets. These points cannot be saved.",
+      "prerequisites": ["Dominion"], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Flyers", "slotCost": 2, "category": "background",
+      "description": "One or more characters on this roster may include the Winged ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Greater Purpose", "slotCost": 2, "category": "background",
+      "description": "Opponents do not become Director by clearly winning a fight against your level 1 and 2 characters.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Nefarious", "slotCost": 2, "category": "background",
+      "description": "Characters in your league may shoot into a brawl which includes a colleague. Shooting into a brawl is an unopposed attack and all hits are assigned randomly to the engaged characters.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Network of Supporters", "slotCost": 2, "category": "background",
+      "description": "During set-up, roll your Leader\u2019s Finesse dice. Each success (4+) adds a +1 Contacts point for selecting assets. These points cannot be saved.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Noblesse", "slotCost": 2, "category": "background",
+      "description": "One or more characters on this roster may include the Noblesse ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Overlord", "slotCost": 2, "category": "background",
+      "description": "Dominion required. During set-up, roll your Leader\u2019s Might dice. Each success (4+) adds +1 Backup point for selecting level 1 and level 2 Minions. These points cannot be saved.",
+      "prerequisites": ["Dominion"], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Riders", "slotCost": 2, "category": "background",
+      "description": "One or more characters on this roster may include the Mounted ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Shapeshifters", "slotCost": 2, "category": "background",
+      "description": "One or more characters on this roster may include the Shapeshifters ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Skilled", "slotCost": 2, "category": "background",
+      "description": "Characters in this league may re-roll one Might, Finesse, or Cunning die during their activation.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Tenacious", "slotCost": 2, "category": "background",
+      "description": "Once per turn, when an enemy activates within 6\" of one of your injured (including down) characters, you may discard to roll an immediate Recovery check for that character.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Daredevil Adventurers", "slotCost": 3, "category": "background",
+      "description": "One or more characters on this roster may include the Daredevil ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Eagle-Eyed Troopers", "slotCost": 3, "category": "background",
+      "description": "One or more characters on this roster may include the Eagle-Eyed ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Intrepid Explorers", "slotCost": 3, "category": "background",
+      "description": "One or more characters on this roster may include the Intrepid ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Shadowy Agents", "slotCost": 3, "category": "background",
+      "description": "One or more characters on this roster may include the Shadowy ability in addition to their starting abilities.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": null
+    },
+    {
+      "name": "Duo", "slotCost": 4, "category": "background",
+      "description": "Your Sidekick starts with one additional ability and a Health of d10. Your league can only include one Leader, one Sidekick, perks, and Associates. This roster can never include any Level 1 or Level 2 characters. The cost of this perk does not include the Sidekick.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": "duo"
+    },
+    {
+      "name": "League of Legends", "slotCost": 10, "category": "background",
+      "description": "Your league includes four Sidekicks (included in the cost of this perk), but does not include a Leader level character. Instead, select one of these Sidekicks to fill the role of Leader for the scenarios.",
+      "prerequisites": [], "restrictions": [],
+      "leagueStructureOverride": "leagueOfLegends"
+    }
+  ],
+  "associateAbilities": [
+    { "name": "Exploit Weakness", "description": "Once during this scenario, at the start of any turn, you may select one enemy\u2019s ability. The selected ability has no effect for that character for the duration of the turn." },
+    { "name": "Fortune's Favor", "description": "Once per turn, when one of your characters encounters a challenge you may replace the challenge with one from your own hand." },
+    { "name": "Friend of a Friend", "description": "You gain +1 Contacts point." },
+    { "name": "Got the Goods", "description": "You gain +1 Gear point." },
+    { "name": "Got Your Back", "description": "You gain +1 Backup point." },
+    { "name": "In the Know", "description": "You gain +1 Tips point." },
+    { "name": "Infiltrate", "description": "All your characters may begin the scenario hidden and may sneak up to 6\" \u2014 instead of 3\"." },
+    { "name": "Lucky Charm", "description": "Your Leader gains Lucky Devil or Danger Sense (pick one)." },
+    { "name": "Misdirection", "description": "One random enemy is delayed \u2014 does not deploy until turn #2." },
+    { "name": "Phantom Hand", "description": "At the end of each turn, you may discard. If you do so, each opponent must discard one random card." },
+    { "name": "Research & Rumors", "description": "Once per turn, you may discard to give one of your characters a +1 bonus for a challenge." },
+    { "name": "Supplies", "description": "Before the start of this scenario, you may select a level 1 ability for your Leader." },
+    { "name": "Tinker", "description": "You gain +2 Resource points to spend on a mount, vehicle, or Gadgets for this scenario. Note, these points cannot be saved for other scenarios." },
+    { "name": "Trickery & Tactics", "description": "You may draw one Fortune card each time your Leader passes a plot point." },
+    { "name": "Twist of Fate", "description": "At the start of any turn, instead of drawing as normal, you may discard any number of cards and then draw the same number of cards that you just discarded." }
+  ],
+  "weapons": {
+    "ranged": [
+      { "name": "Pistol", "category": "ranged", "description": "You may re-roll one Shoot die during your own activation. Maximum range is 12\"." },
+      { "name": "SMG", "category": "ranged", "description": "Once per turn, discard to gain a +2 Shoot bonus against a target within 6\". Maximum range is 18\". Note, this bonus cannot be combined with another effect that has a +2 bonus." },
+      { "name": "Rifle", "category": "ranged", "description": "You ignore the \u20131 penalty for long range. You may re-roll one Shoot die during your activation if you do not move." },
+      { "name": "Shotgun", "category": "ranged", "description": "You receive an extra +1 Shoot bonus for a target within 6\", and a \u20131 Shoot penalty for a target over 12\". You cannot move over 6\" and use this weapon in the same turn." },
+      { "name": "Primitive", "category": "ranged", "description": "You receive a light and basic melee weapon for free. You cannot move and use this weapon in the same turn. 18\" maximum range." },
+      { "name": "Thrown", "category": "ranged", "description": "You receive a light and basic melee weapon for free. 12\" maximum range." }
+    ],
+    "melee": [
+      { "name": "Light", "category": "melee", "description": "You may re-roll one Brawl die during your own activation. You cannot score more than 2 hits during a brawl \u2014 regardless of the number of successes you roll. Includes knives, claws, nightsticks, and so on." },
+      { "name": "Basic", "category": "melee", "description": "Once per brawl, you may re-roll one Brawl die or force the enemy to re-roll one Brawl dice (your choice). You cannot use this weapon and shoot over 12\" in the same turn. Includes one-handed swords, axes, and so on." },
+      { "name": "Heavy", "category": "melee", "description": "Once per turn, discard to gain a +2 Brawl bonus. You cannot use this weapon and shoot in the same turn. Includes two-handed swords, greataxes, and so on." },
+      { "name": "Long", "category": "melee", "description": "You receive a +1 Brawl bonus when you are ready. You cannot use this weapon and shoot in the same turn. May include polearms, spears, and so on." },
+      { "name": "Grappling", "category": "melee", "description": "When you activate in contact with one enemy, you may force them to roll an opposed Brawl check \u2014 instead of resolving a normal brawl. The character that loses the check drops one Health level automatically. If there is no winner/loser then there is no effect." },
+      { "name": "Shield", "category": "melee", "description": "Shield may be combined with using a light, basic, long, or thrown weapon in the same fight. When you fail a Health check in a brawl, you may re-roll one die. When you fail a Health check in a shootout against a primitive or thrown weapon, you may re-roll one die. Shield cannot be combined with any other Health check re-rolls." }
+    ]
+  },
+  "secretSocieties": [
+    {
+      "name": "The Society (I.R.E.S.)",
+      "ranks": [
+        {
+          "rank": 1, "reputationRequired": 30,
+          "perks": [
+            { "name": "The First Cup", "description": "You may draw one Fortune Card each time your Leader passes a Recovery check." },
+            { "name": "The First Blade", "description": "You may draw two Fortune Cards each time your Leader injures an enemy Leader." },
+            { "name": "The First Coin", "description": "You may draw two Fortune Cards each time your Leader passes a plot point challenge." }
+          ]
+        },
+        {
+          "rank": 2, "reputationRequired": 55,
+          "perks": [
+            { "name": "The Exchange", "description": "You may convert your Tips to any other resource point (Backup, Contacts, Gear) \u2014 at a 1 for 1 ratio." },
+            { "name": "Ministry of Research", "description": "You gain +1 Gear before each scenario. This point may be spent on the current scenario or saved." },
+            { "name": "Ministry of Exploration", "description": "You gain +1 Contacts before each scenario. This point may be spent on this scenario or saved." }
+          ]
+        },
+        {
+          "rank": 3, "reputationRequired": 80,
+          "perks": [
+            { "name": "The Consortium", "description": "Your league gains the Network of Supporters perk. You cannot select this option if you already have this perk or Ancient Sect." },
+            { "name": "Archive of Artifacts", "description": "Your league gains the Bastion of Science perk. You cannot select this option if you already have this perk or Dark Pact." },
+            { "name": "The Faith", "description": "Your league gains the Greater Purpose perk. You cannot select this option if you already have this perk." }
+          ]
+        },
+        {
+          "rank": 4, "reputationRequired": 125,
+          "perks": [
+            { "name": "Mantle of Honour", "description": "Raise your Leader\u2019s Shoot and Finesse one dice-type (max. d12)." },
+            { "name": "Mantle of Discovery", "description": "Raise your Leader\u2019s Dodge and Cunning one dice-type (max. d12)." },
+            { "name": "Mantle of Protection", "description": "Raise your Leader\u2019s starting Health one dice-type (max. d12)." }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "The Order (Oginali)",
+      "ranks": [
+        {
+          "rank": 1, "reputationRequired": 30,
+          "perks": [
+            { "name": "The First Cup", "description": "You may draw one Fortune Card each time your Leader passes a Recovery check." },
+            { "name": "The First Blade", "description": "You may draw two Fortune Cards each time your Leader injures an enemy Leader." },
+            { "name": "The First Coin", "description": "You may draw two Fortune Cards each time your Leader passes a plot point challenge." }
+          ]
+        },
+        {
+          "rank": 2, "reputationRequired": 55,
+          "perks": [
+            { "name": "Fox Totem", "description": "You may convert your Tips to any other resource point (Backup, Contacts, Gear) \u2014 at a 1 for 1 ratio." },
+            { "name": "Coyote Totem", "description": "You gain +1 Backup before each scenario. This point may be spent on this scenario or saved." },
+            { "name": "Raven Totem", "description": "You gain +1 Contacts before each scenario. This point may be spent on this scenario or saved." }
+          ]
+        },
+        {
+          "rank": 3, "reputationRequired": 80,
+          "perks": [
+            { "name": "Ring of Fellowship", "description": "Your league gains the Network of Supporters perk. You cannot select this option if you already have this perk or Ancient Sect." },
+            { "name": "Ring of War", "description": "Your league gains the Call to Arms perk. You cannot select this option if you already have this perk or Overlord." },
+            { "name": "Ring of Fire", "description": "Your league gains the Daredevil Adventurers perk. You cannot select this option if you already have this perk." }
+          ]
+        },
+        {
+          "rank": 4, "reputationRequired": 125,
+          "perks": [
+            { "name": "Spirit of the Eagle", "description": "Raise your Leader\u2019s Shoot and Finesse one dice-type (max. d12)." },
+            { "name": "Spirit of the Wolf", "description": "Raise your Leader\u2019s Brawl and Might one dice-type (max. d12)." },
+            { "name": "Spirit of the Jaguar", "description": "Raise your Leader\u2019s starting Health one die-type (max. d12)." }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "The Guild (G13)",
+      "ranks": [
+        {
+          "rank": 1, "reputationRequired": 30,
+          "perks": [
+            { "name": "The First Cup", "description": "You may draw one Fortune Card each time your Leader passes a Recovery check." },
+            { "name": "The First Blade", "description": "You may draw two Fortune Cards each time your Leader injures an enemy Leader." },
+            { "name": "The First Coin", "description": "You may draw two Fortune Cards each time your Leader passes a plot point challenge." }
+          ]
+        },
+        {
+          "rank": 2, "reputationRequired": 55,
+          "perks": [
+            { "name": "Meddle", "description": "You may convert your Tips to any other resource point (Backup, Contacts, Gear) \u2014 at a 1 for 1 ratio." },
+            { "name": "Master of Secrets", "description": "You gain +1 Gear before each scenario. This point may be spent on this scenario or saved." },
+            { "name": "Master of Minds", "description": "You gain +1 Backup before each scenario. This point may be spent on this scenario or saved." }
+          ]
+        },
+        {
+          "rank": 3, "reputationRequired": 80,
+          "perks": [
+            { "name": "Triumph of Will", "description": "Your league gains the Overlord perk. You cannot select this option if you already have this perk or Call to Arms." },
+            { "name": "Soul Pact", "description": "Your league gains the Dark Pact perk. You cannot select this option if you already have this perk or Bastion of Science." },
+            { "name": "Obscure by Clouds", "description": "Your league gains the Shadowy Agents perk. You cannot select this option if you already have this perk." }
+          ]
+        },
+        {
+          "rank": 4, "reputationRequired": 125,
+          "perks": [
+            { "name": "Saucer of Secrets", "description": "Raise your Leader\u2019s Dodge and Cunning one dice-type (max. d12)." },
+            { "name": "The Final Cut", "description": "Raise your Leader\u2019s Brawl and Might one dice-type (max. d12)." },
+            { "name": "Endless River", "description": "Raise your Leader\u2019s starting Health one dice-type (max. d12)." }
+          ]
+        }
+      ]
+    }
+  ],
+  "genres": [
+    {
+      "name": "Pulp Sci-Fi",
+      "description": "Science Fiction leapt from the pages of fantastic pulp stories about John Carter of Mars, Buck Rogers, and many more. Mutants, aliens, androids, and whatever you can imagine are easily created using the Pulp Alley rules. Some abilities, such as Cursed Presence may even represent psychic mind attacks. To further represent their technological and cultural differences, you may add +1d to one combat skill and +1d to one action skill.",
+      "modifiers": [
+        { "name": "Tech", "description": "During scenario set-up, each league receives X Gear points. These points may be spent to select assets for this scenario\u2014but cannot be saved for other scenarios." }
+      ]
+    },
+    {
+      "name": "Pulp Fantasy",
+      "description": "The Sword & Sorcery genre is populated with wizards, warriors, rogues, ferocious monsters, and legendary heroes. When you are creating your fantasy characters, some abilities may also represent magic spells. For example, Burst Fire could represent a fireball spell. To further differentiate the characters by class, culture, race, and so on, you may add +1d to one combat skill and +1d to one action skill.",
+      "modifiers": [
+        { "name": "Primitive", "description": "Shooting in this setting may represent thrown weapons and bows, as well as magical attacks such as ice-bolts, lighting, and so on. Characters cannot move over 6\" and shoot in the same turn. All shooting over 12\" suffers a \u20131 penalty, and you cannot shoot over 24\"." }
+      ]
+    },
+    {
+      "name": "Pulp Westerns",
+      "description": "Westerns were a wildly popular pulp genre, with stories filled with natives, cowboys, lawmen, bandits, gunslingers, and soldiers riding across the vast, rugged frontier. All the characters of the Old West are easily created using the normal Pulp Alley rules. Each character may include the Pistol or Rifle (see Weapons) for free.",
+      "modifiers": [
+        { "name": "Riding the Range", "description": "All characters may begin each scenario on a free basic mount, unless otherwise prohibited by the special scenario rules." },
+        { "name": "Gritty", "description": "In this setting, all dice-types over d8 are shifted down to d8 (including Health). If a character would normally roll a dice over d8, it is automatically shifted down to d8." }
+      ]
+    },
+    {
+      "name": "Pulp War",
+      "description": "Tales of battle-hardened legionnaires, Tommies in trenches, aerial aces, and all manner of gritty war stories thrilled pulp magazine readers. All the various characters of the War genre may be created using the normal rules. Each character may include the Pistol or Rifle (see Weapons) for free.",
+      "modifiers": [
+        { "name": "Skirmish", "description": "Scenarios in this setting only use 1 to 3 plot points. However, when you clearly win a fight against an enemy Leader or Sidekick, you take one random Reward card. Any reward earned in this way is no-drop. Note, the total number of rewards for a single scenario should not normally exceed 5." },
+        { "name": "Harsh", "description": "If a character is impaired by a Harrowing Escape roll, the condition is permanent." }
+      ]
+    },
+    {
+      "name": "Pulp Lost World",
+      "description": "From the center of the Earth to lost Amazonian jungles and beyond, strange lands await intrepid explorers brave enough or unlucky enough to arrive. Characters of all types can be created with the Pulp Alley rules. You may use the rules for Epic characters to represent some of the greatest lost-world denizens. You may also consider adding a horror aspect to your lost world adventures by making some denizens horrific as well (see Horror rules).",
+      "modifiers": [
+        { "name": "Denizens", "description": "You may include the various inhabitants of a lost world by creating the appropriate character profiles and adding them to your scenarios with the NPC rules. These denizens will almost always be hostile towards all player-characters." }
+      ]
+    },
+    {
+      "name": "Pulp Horror",
+      "description": "Many pulp magazines provided their readers with weird tales of terror and the macabre \u2014 from classic gothic monsters to the otherworldly Lovecraft mythos. See the Pulp Alley Horror rules for details. Each character may include one of the following kits for free.",
+      "modifiers": [
+        { "name": "Horrific (kit)", "description": "This character is horrific. See Horror rules. Instead of moving normally, if a horrific character is over 6\" and out of line-of-sight of all enemies, they may Move in Shadows: Move the character to anywhere on the table that is also over 6\" and out of line-of-sight of an enemy. This ends their activation." },
+        { "name": "Investigator (kit)", "description": "Once per turn, discard to gain a +2 bonus for one challenge. You cannot move over 6\" and gain this bonus. You cannot shoot over 12\"." }
+      ]
+    }
+  ],
+  "reputationTable": [
+    { "threshold": 10, "name": "Local Support", "description": "You may re-roll your Random Event once per scenario. As always, you must take the new result if you choose to re-roll." },
+    { "threshold": 15, "name": "Training", "description": "Your league earns +1 Experience. This point may be saved or used now." },
+    { "threshold": 20, "name": "Surplus", "description": "Your league earns +1 Resource point. Select one: Tips, Backup, Gear, or Contacts." },
+    { "threshold": 25, "name": "Regional Influence", "description": "Your league roster is expanded by +1 slot." },
+    { "threshold": 30, "name": "Secret Invitation", "description": "Pick a Secret Society to join and then select a Rank 1 perk from your Secret Society." },
+    { "threshold": 35, "name": "Underworld Contacts", "description": "Shift your dice-type up one when rolling for starting Director (d12 max)." },
+    { "threshold": 40, "name": "Bolster", "description": "Your league earns +1 Experience. This point may be saved or used now." },
+    { "threshold": 45, "name": "Payoff", "description": "Your league earns +1 Resource point. Select one: Tips, Backup, Gear, or Contacts." },
+    { "threshold": 50, "name": "Accomplice", "description": "Your league roster gains +1 slot to use for an Associate only. Maximum number of Associates is increased to 3." },
+    { "threshold": 55, "name": "Secret Meeting", "description": "Select a Rank 2 perk from your Secret Society." },
+    { "threshold": 60, "name": "Privileged Access", "description": "On turn #1 of the scenario, you draw +1 Fortune card." },
+    { "threshold": 65, "name": "Advanced Training", "description": "Your league earns +1 Experience. This point may be saved or used now." },
+    { "threshold": 70, "name": "Fortuitous Discovery", "description": "Your league earns +1 Resource point. Select one: Tips, Backup, Gear, or Contacts." },
+    { "threshold": 75, "name": "Known Associate", "description": "Your league roster gains +1 slot to use for an Associate only. Maximum number of Associates is increased to 4." },
+    { "threshold": 80, "name": "Secret Agenda", "description": "Select a Rank 3 perk from your Secret Society." },
+    { "threshold": 85, "name": "Nationally Recognized", "description": "Shift the die-type up one for your Leader\u2019s first Recovery check of each scenario (d12 max)." },
+    { "threshold": 90, "name": "Guru", "description": "Your league earns +1 Experience. This point may be saved or used now." },
+    { "threshold": 95, "name": "Windfall", "description": "Your league earns +1 Resource point. Select one: Tips, Backup, Gear, or Contacts." },
+    { "threshold": 100, "name": "World Famous", "description": "Your league roster is expanded by +1 slot." },
+    { "threshold": 125, "name": "Secret War", "description": "Select a Rank 4 perk from your Secret Society." },
+    { "threshold": 150, "name": "Government Contacts", "description": "You gain +1 Tips before each scenario. This point may be saved or used for the upcoming scenario." },
+    { "threshold": 175, "name": "Legendary", "description": "Your league earns +1 Experience. This point may be saved or used now. You earn an extra +1 XP each time you gain an additional 25 Reputation points." }
+  ]
 }
