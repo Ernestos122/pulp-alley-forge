@@ -1,0 +1,89 @@
+{
+  "characterTemplates": [
+    {
+      "type": "leader", "level": 4, "health": "d10",
+      "skillDicePools": { "high": 3, "low": 2, "highCount": 4, "lowCount": 2 },
+      "skillDiceTypes": { "high": "d10", "low": "d8", "highCount": 4, "lowCount": 2 },
+      "abilitySlots": 3, "maxAbilityLevel": 4, "rosterSlotCost": 0
+    },
+    {
+      "type": "sidekick", "level": 3, "health": "d8",
+      "skillDicePools": { "high": 3, "low": 2, "highCount": 3, "lowCount": 3 },
+      "skillDiceTypes": { "high": "d8", "low": "d6", "highCount": 3, "lowCount": 3 },
+      "abilitySlots": 2, "maxAbilityLevel": 3, "rosterSlotCost": 3
+    },
+    {
+      "type": "ally", "level": 2, "health": "d6",
+      "skillDicePools": { "high": 2, "low": 1, "highCount": 2, "lowCount": 4 },
+      "skillDiceTypes": { "high": "d6", "low": "d6", "highCount": 6, "lowCount": 0 },
+      "abilitySlots": 1, "maxAbilityLevel": 2, "rosterSlotCost": 2
+    },
+    {
+      "type": "follower", "level": 1, "health": "d6*",
+      "skillDicePools": { "high": 1, "low": 1, "highCount": 6, "lowCount": 0 },
+      "skillDiceTypes": { "high": "d6", "low": "d6", "highCount": 6, "lowCount": 0 },
+      "abilitySlots": 1, "maxAbilityLevel": 1, "rosterSlotCost": 1
+    },
+    {
+      "type": "gang", "level": 2, "health": "none",
+      "skillDicePools": null, "skillDiceTypes": null,
+      "abilitySlots": 1, "maxAbilityLevel": 2, "rosterSlotCost": 2,
+      "models": 5,
+      "gangSkillRules": "Brawl/Shoot/Might: 1d6 per 2 models (rounded up). Dodge/Cunning/Finesse: always 1d6."
+    },
+    {
+      "type": "epic", "level": 4, "health": "d10",
+      "skillDicePools": { "high": 3, "low": 2, "highCount": 4, "lowCount": 2 },
+      "skillDiceTypes": { "high": "d10", "low": "d8", "highCount": 4, "lowCount": 2 },
+      "abilitySlots": 3, "maxAbilityLevel": 4, "rosterSlotCost": 5,
+      "freeAbilities": ["Monster"], "epicAbilitySlots": 1, "extraAbilitySlotsFromRoster": 5
+    }
+  ],
+  "abilities": {
+    "level1": [
+      { "name": "Agile", "level": 1, "description": "Add +1 die to Dodge.", "effects": [{"type":"addDice","count":1,"target":"Dodge"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Animal", "level": 1, "description": "Add +1 die to two skills. Reduce Shoot to no-dice.", "effects": [{"type":"addDice","count":1,"target":"pick2"},{"type":"setNoDice","target":["Shoot"]}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Aquatic", "level": 1, "description": "You automatically pass the perils for difficult and perilous areas in deep water. In the deep, your line-of-sight is up to 12\" and you ignore the -1 fight penalties.", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Armored", "level": 1, "description": "You cannot move over 6\" except to rush. You roll one bonus die for all Health checks.", "effects": [{"type":"movementRestrict","maxInches":6},{"type":"healthBonus","count":1}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Beast", "level": 1, "description": "You cannot perform actions. Select two free abilities from: Animal, Aquatic, Big, Fierce, Mindless, Reanimated, Speedy, Swarm, Winged.", "effects": [{"type":"preventAction"},{"type":"grantFreeAbilities","count":2,"fromList":["Animal","Aquatic","Big","Fierce","Mindless","Reanimated","Speedy","Swarm","Winged"]}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Brainy", "level": 1, "description": "Add +1 die to Dodge and Cunning. Reduce Brawl to no-dice.", "effects": [{"type":"addDice","count":1,"target":"Dodge"},{"type":"addDice","count":1,"target":"Cunning"},{"type":"setNoDice","target":["Brawl"]}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Brute", "level": 1, "description": "Once per turn, you may re-roll one Brawl or Might die.", "effects": [{"type":"rerollSkill","skills":["Brawl","Might"],"perTurn":1}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Clever", "level": 1, "description": "Add +1 die to Cunning.", "effects": [{"type":"addDice","count":1,"target":"Cunning"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Covert", "level": 1, "description": "When you are hidden, an opponent must win the opposed spotting check to spot you.", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Crafty", "level": 1, "description": "Once per turn, you may re-roll one Dodge or Cunning die.", "effects": [{"type":"rerollSkill","skills":["Dodge","Cunning"],"perTurn":1}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Fierce", "level": 1, "description": "Add +1 die to Brawl.", "effects": [{"type":"addDice","count":1,"target":"Brawl"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Goon", "level": 1, "description": "You cannot perform actions. Select two free abilities from: Aquatic, Brute, Fierce, Marksman, Sharp, Slam, Trick, Winged.", "effects": [{"type":"preventAction"},{"type":"grantFreeAbilities","count":2,"fromList":["Aquatic","Brute","Fierce","Marksman","Sharp","Slam","Trick","Winged"]}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Hard-Nosed", "level": 1, "description": "Once per turn, you may re-roll one Might, Finesse, or Cunning die.", "effects": [{"type":"rerollSkill","skills":["Might","Finesse","Cunning"],"perTurn":1}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Marksman", "level": 1, "description": "Add +1 die to Shoot.", "effects": [{"type":"addDice","count":1,"target":"Shoot"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Mighty", "level": 1, "description": "Add +1 die to Might.", "effects": [{"type":"addDice","count":1,"target":"Might"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Mindless", "level": 1, "description": "Raise Brawl and Might one dice-type. Reduce Cunning and Finesse one dice-type. If a d6 skill is reduced it drops to no-dice.", "effects": [{"type":"shiftUp","target":["Brawl","Might"]},{"type":"shiftDown","target":["Cunning","Finesse"]}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Monster", "level": 1, "description": "You are horrific (see Horror).", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Mounted", "level": 1, "description": "You may start each scenario riding a basic mount.", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Plan", "level": 1, "description": "Once per turn, you may discard to gain a +1 bonus to Dodge or Cunning.", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Reanimated", "level": 1, "description": "You automatically pass all 1d Health checks. Reduce Dodge to no-dice. You cannot block. You cannot move over 6\" except to rush.", "effects": [{"type":"setNoDice","target":["Dodge"]},{"type":"movementRestrict","maxInches":6},{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Savvy", "level": 1, "description": "Add +1 die to Finesse.", "effects": [{"type":"addDice","count":1,"target":"Finesse"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Shadowy", "level": 1, "description": "You gain a +1 bonus to all opposed spotting checks.", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Sharp", "level": 1, "description": "Once per turn, you may re-roll one Shoot or Finesse die.", "effects": [{"type":"rerollSkill","skills":["Shoot","Finesse"],"perTurn":1}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Short Burst", "level": 1, "description": "Action: Place the Short Burst (see Burst rules).", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Slam", "level": 1, "description": "Once per turn, you may discard to gain a +1 bonus to Brawl or Might.", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Sly", "level": 1, "description": "Add +1 die to Dodge and Finesse. Reduce Brawl to no-dice.", "effects": [{"type":"addDice","count":1,"target":"Dodge"},{"type":"addDice","count":1,"target":"Finesse"},{"type":"setNoDice","target":["Brawl"]}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Speedy", "level": 1, "description": "You may move up to 16\" instead of 12\".", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Swarm", "level": 1, "description": "You may play a peril from your Fortune hand on an enemy when they come into contact or activate in contact with you.", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Trick", "level": 1, "description": "Once per turn, you may discard to gain a +1 bonus to Shoot or Finesse.", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "True Believer", "level": 1, "description": "(Followers, Allies, and Sidekicks only) Reduce Shoot to no-dice. When rolling for any other skill, you roll a number of dice equal to your character level. You ignore all modifiers except Fortune card effects. You can never have any other abilities.", "effects": [{"type":"setNoDice","target":["Shoot"]},{"type":"narrative"}], "restrictions": ["notLeader"], "incompatibleWith": ["all"] },
+      { "name": "Two-Fisted", "level": 1, "description": "Add +1 die to two skills. Reduce Shoot to no-dice.", "effects": [{"type":"addDice","count":1,"target":"pick2"},{"type":"setNoDice","target":["Shoot"]}], "restrictions": [], "incompatibleWith": [] },
+      { "name": "Winged", "level": 1, "description": "You may fly up to 16\" and ignore the intervening terrain and characters. You cannot fly and shoot during the same activation when you are at ground level.", "effects": [{"type":"narrative"}], "restrictions": [], "incompatibleWith": [] }
+    ],
+    "level2": [],
+    "level3": [],
+    "level4": [],
+    "epic": [],
+    "gang": []
+  },
+  "perks": [],
+  "associateAbilities": [],
+  "weapons": { "ranged": [], "melee": [] },
+  "genres": [],
+  "secretSocieties": [],
+  "reputationTable": []
+}
