@@ -49,6 +49,7 @@
         .badge-ally { color: #8b6914; }
         .badge-follower { color: var(--ink-faded); }
         .badge-gang { color: var(--ink-light); }
+        .badge-epic { color: var(--crimson); }
 
         /* Print overrides */
         @media print {
@@ -154,9 +155,10 @@
             abilities: [],
             abilityFlavourNames: {},
             abilityChoices: {},
-            freeAbilities: [],
+            freeAbilities: type === 'epic' ? ['Monster'] : [],
             learnedAbilities: [],
             gangModels: type === 'gang' ? 5 : null,
+            extraAbilitySlots: type === 'epic' ? 0 : undefined,
             ...(template || {}),
         });
 
@@ -380,6 +382,8 @@
             league.characters.forEach(c => {
                 const tmpl = getTemplate(gameData, c.type);
                 if (tmpl) used += tmpl.rosterSlotCost;
+                // Epic characters can spend extra roster slots for additional abilities
+                if (c.type === 'epic' && c.extraAbilitySlots) used += c.extraAbilitySlots;
             });
             league.perks.forEach(pName => {
                 const perk = gameData.perks.find(p => p.name === pName);
@@ -644,6 +648,17 @@
                             <option value="">Classic Pulp</option>
                             {(gameData?.genres || []).map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
                         </select>
+                        <button
+                            onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), supers: !l.optionalRules?.supers}}))}
+                            title="Supers optional rule: allows Epic characters"
+                            className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all"
+                            style={{
+                                background: league.optionalRules?.supers ? 'var(--crimson)' : 'var(--ink)',
+                                color: 'var(--paper)',
+                                border: league.optionalRules?.supers ? '1px solid var(--crimson)' : '1px solid var(--ink-faded)',
+                            }}>
+                            Supers
+                        </button>
                         <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
                             <Icons.Download size={16} />
                         </button>
@@ -691,6 +706,7 @@
             const used = getUsedSlots(league, gameData);
             const total = getTotalSlots(league, gameData);
             const leaders = league.characters.filter(c => c.type === 'leader');
+            const epics = league.characters.filter(c => c.type === 'epic');
             const sidekicks = league.characters.filter(c => c.type === 'sidekick');
             const allies = league.characters.filter(c => c.type === 'ally');
             const followers = league.characters.filter(c => c.type === 'follower');
@@ -744,6 +760,7 @@
 
                     <div className="flex-1 overflow-y-auto">
                         <Section title="Leader" chars={leaders} />
+                        <Section title="Epic" chars={epics} />
                         <Section title="Sidekicks" chars={sidekicks} />
                         <Section title="Allies" chars={allies} />
                         <Section title="Followers" chars={followers} />
@@ -820,13 +837,15 @@
             const maxSK = getMaxSidekicks(league);
             const hasMastermind = league.perks.includes('Mastermind');
             const hasLoL = league.perks.includes('League of Legends');
+            const supersEnabled = league.optionalRules?.supers;
 
             const options = [
-                { type: 'leader', label: 'Leader', cost: 0, disabled: hasLeader || hasMastermind || hasLoL, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : hasLoL ? 'League of Legends: no Leader' : '' },
-                { type: 'sidekick', label: 'Sidekick', cost: 3, disabled: sidekickCount >= maxSK || available < 3, reason: sidekickCount >= maxSK ? `Max ${maxSK} Sidekick(s)` : 'Not enough slots' },
-                { type: 'ally', label: 'Ally', cost: 2, disabled: available < 2, reason: 'Not enough slots' },
-                { type: 'follower', label: 'Follower', cost: 1, disabled: available < 1, reason: 'Not enough slots' },
-                { type: 'gang', label: 'Gang', cost: 2, disabled: available < 2, reason: 'Not enough slots' },
+                { type: 'leader', label: 'Leader', cost: 0, desc: '', disabled: hasLeader || hasMastermind || hasLoL, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : hasLoL ? 'League of Legends: no Leader' : '' },
+                { type: 'sidekick', label: 'Sidekick', cost: 3, desc: '', disabled: sidekickCount >= maxSK || available < 3, reason: sidekickCount >= maxSK ? `Max ${maxSK} Sidekick(s)` : 'Not enough slots' },
+                { type: 'ally', label: 'Ally', cost: 2, desc: '', disabled: available < 2, reason: 'Not enough slots' },
+                { type: 'follower', label: 'Follower', cost: 1, desc: '', disabled: available < 1, reason: 'Not enough slots' },
+                { type: 'gang', label: 'Gang', cost: 2, desc: '', disabled: available < 2, reason: 'Not enough slots' },
+                ...(supersEnabled ? [{ type: 'epic', label: 'Epic', cost: 5, desc: '3 abilities + 1 epic ability + Monster free.', disabled: available < 5, reason: 'Not enough slots (need 5)' }] : []),
             ];
 
             // Filter: Duo perk restricts to leader+sidekick only
@@ -861,6 +880,7 @@
                                             <span className="brand-font font-bold" style={{color: LEVEL_COLORS[opt.type]}}>{opt.label}</span>
                                             <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{opt.cost > 0 ? `${opt.cost} slots` : 'Free'}</span>
                                         </div>
+                                        {opt.desc && !dis && <div className="typewriter text-xs mt-1" style={{color:'var(--ink-faded)'}}>{opt.desc}</div>}
                                         {dis && <div className="typewriter text-xs mt-1" style={{color:'var(--crimson)'}}>{reason}</div>}
                                     </button>
                                 );
@@ -1079,16 +1099,29 @@
 
         const AbilityPicker = ({ character, gameData, onUpdate }) => {
             const [showBrowser, setShowBrowser] = useState(false);
+            const [showEpicBrowser, setShowEpicBrowser] = useState(false);
             const [searchTerm, setSearchTerm] = useState('');
             const [levelFilter, setLevelFilter] = useState(0);
             const template = getTemplate(gameData, character.type);
             if (!template) return null;
 
+            const isEpic = character.type === 'epic';
             const maxLevel = template.maxAbilityLevel;
-            const maxSlots = template.abilitySlots;
-            const usedSlots = character.abilities.length;
+            // For epic: regular ability slots = abilitySlots (3) + extraAbilitySlots
+            const extraSlots = isEpic ? (character.extraAbilitySlots || 0) : 0;
+            const maxSlots = template.abilitySlots + extraSlots;
+            // For epic: epic ability slots come from template.epicAbilitySlots (1)
+            const maxEpicSlots = isEpic ? (template.epicAbilitySlots || 1) : 0;
 
-            // Free abilities from Beast/Goon/Dithering
+            // Split epic character abilities: epic vs regular
+            const epicAbilityNames = isEpic ? (gameData.abilities.epic || []).map(a => a.name) : [];
+            const regularAbilities = isEpic ? character.abilities.filter(a => !epicAbilityNames.includes(a)) : character.abilities;
+            const epicAbilities = isEpic ? character.abilities.filter(a => epicAbilityNames.includes(a)) : [];
+
+            const usedSlots = regularAbilities.length;
+            const usedEpicSlots = epicAbilities.length;
+
+            // Free abilities from Beast/Goon/Dithering / Monster (Epic)
             const freeAbilities = character.freeAbilities || [];
 
             const removeAbility = (abilityName) => {
@@ -1114,7 +1147,9 @@
             };
 
             const addAbility = (abilityName) => {
-                if (usedSlots >= maxSlots) return;
+                const isEpicAbility = epicAbilityNames.includes(abilityName);
+                if (isEpicAbility && usedEpicSlots >= maxEpicSlots) return;
+                if (!isEpicAbility && usedSlots >= maxSlots) return;
                 const ability = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(a => a.name === abilityName);
                 if (!ability) return;
                 let updated = { ...character, abilities: [...character.abilities, abilityName] };
@@ -1126,6 +1161,7 @@
                 }
                 onUpdate(updated);
                 setShowBrowser(false);
+                setShowEpicBrowser(false);
             };
 
             const addFreeAbility = (abilityName, parentAbility) => {
@@ -1162,6 +1198,15 @@
                 });
                 return filtered;
             })();
+
+            // Epic ability browser pool (only for epic characters)
+            const browseEpicAbilities = isEpic ? (() => {
+                const pool = gameData.abilities.epic || [];
+                return pool.filter(ab => {
+                    if (searchTerm && !ab.name.toLowerCase().includes(searchTerm.toLowerCase()) && !ab.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+                    return true;
+                });
+            })() : [];
 
             const AbilityCard = ({ abilityName, isFree, onRemove }) => {
                 const ab = allAbPool.find(a => a.name === abilityName);
@@ -1279,21 +1324,58 @@
 
             return (
                 <div className="mb-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="typewriter text-xs uppercase tracking-wider" style={{color:'var(--crimson)'}}>Abilities ({usedSlots}/{maxSlots})</div>
-                        {usedSlots < maxSlots && (
-                            <button onClick={() => { setShowBrowser(true); setSearchTerm(''); }}
-                                className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
-                                style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
-                                <Icons.Plus size={12} /> Add Ability
-                            </button>
-                        )}
-                    </div>
+                    {/* Header — split for Epic, combined for others */}
+                    {isEpic ? (
+                        <div className="mb-2">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--crimson)'}}>Abilities</div>
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Abilities: {usedSlots}/{maxSlots}</span>
+                                {usedSlots < maxSlots && (
+                                    <button onClick={() => { setShowBrowser(true); setSearchTerm(''); setLevelFilter(0); }}
+                                        className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
+                                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                                        <Icons.Plus size={12} /> Add Ability
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Epic Ability: {usedEpicSlots}/{maxEpicSlots}</span>
+                                {usedEpicSlots < maxEpicSlots && (
+                                    <button onClick={() => { setShowEpicBrowser(true); setSearchTerm(''); }}
+                                        className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
+                                        style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                        <Icons.Plus size={12} /> Add Epic Ability
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="typewriter text-xs uppercase tracking-wider" style={{color:'var(--crimson)'}}>Abilities ({usedSlots}/{maxSlots})</div>
+                            {usedSlots < maxSlots && (
+                                <button onClick={() => { setShowBrowser(true); setSearchTerm(''); }}
+                                    className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
+                                    style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                                    <Icons.Plus size={12} /> Add Ability
+                                </button>
+                            )}
+                        </div>
+                    )}
 
-                    {/* Selected abilities */}
-                    {character.abilities.map(aName => (
+                    {/* Regular abilities */}
+                    {(isEpic ? regularAbilities : character.abilities).map(aName => (
                         <AbilityCard key={aName} abilityName={aName} isFree={false} onRemove={() => removeAbility(aName)} />
                     ))}
+
+                    {/* Epic abilities (epic characters only) */}
+                    {isEpic && epicAbilities.length > 0 && (
+                        <div className="mb-1">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--crimson)', opacity:0.7}}>Epic Abilities</div>
+                            {epicAbilities.map(aName => (
+                                <AbilityCard key={aName} abilityName={aName} isFree={false} onRemove={() => removeAbility(aName)} />
+                            ))}
+                        </div>
+                    )}
 
                     {/* Free abilities (not part of parent grant — standalone display) */}
                     {freeAbilities.filter(f => {
@@ -1369,6 +1451,53 @@
                             </div>
                         </div>
                     )}
+
+                    {/* Epic Ability Browser Modal */}
+                    {showEpicBrowser && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.6)'}} onClick={() => setShowEpicBrowser(false)}>
+                            <div className="p-4 rounded-lg w-full max-w-lg max-h-[80vh] flex flex-col" style={{background:'var(--paper)', border:'2px solid var(--crimson)'}} onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <h3 className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>Select Epic Ability</h3>
+                                        <div className="typewriter text-xs" style={{color:'var(--crimson)'}}>Epic slot: {usedEpicSlots}/{maxEpicSlots}</div>
+                                    </div>
+                                    <button onClick={() => setShowEpicBrowser(false)} className="cursor-pointer hover:opacity-70" style={{color:'var(--ink-faded)'}}>
+                                        <Icons.X size={18} />
+                                    </button>
+                                </div>
+                                <div className="mb-3 relative">
+                                    <Icons.Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2" style={{color:'var(--ink-faded)'}} />
+                                    <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                        placeholder="Search epic abilities..."
+                                        className="w-full pl-7 pr-2 py-1.5 rounded typewriter text-sm outline-none"
+                                        style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}} />
+                                </div>
+                                <div className="flex-1 overflow-y-auto space-y-1">
+                                    {browseEpicAbilities.map(ab => {
+                                        const errors = validateAbilityForCharacter(ab.name, character, gameData);
+                                        const blocked = errors.length > 0;
+                                        return (
+                                            <button key={ab.name}
+                                                disabled={blocked}
+                                                onClick={() => addAbility(ab.name)}
+                                                className="w-full text-left p-2 rounded cursor-pointer transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                style={{background:'var(--paper-dark)', border:'1px solid var(--crimson)'}}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="brand-font font-bold text-sm" style={{color: blocked ? 'var(--ink-faded)' : 'var(--crimson)'}}>{ab.name}</span>
+                                                    <span className="typewriter text-xs px-1 rounded" style={{background:'var(--crimson)', color:'var(--paper)'}}>Epic</span>
+                                                </div>
+                                                <div className="typewriter text-xs mt-0.5" style={{color:'var(--ink-faded)'}}>{ab.description}</div>
+                                                {blocked && <div className="typewriter text-xs mt-0.5" style={{color:'var(--crimson)'}}>{errors.join(' | ')}</div>}
+                                            </button>
+                                        );
+                                    })}
+                                    {browseEpicAbilities.length === 0 && (
+                                        <div className="text-center typewriter text-sm py-4" style={{color:'var(--ink-faded)'}}>No epic abilities available</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -1438,6 +1567,55 @@
                                 style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}}>
                                 {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
                             </select>
+                        </div>
+                    )}
+
+                    {/* Epic: Extra ability slots from roster */}
+                    {character.type === 'epic' && (
+                        <div className="mb-4 p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--crimson)'}}>
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="typewriter text-sm" style={{color:'var(--ink-light)'}}>Extra Ability Slots (from roster):</span>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => onUpdate({...character, extraAbilitySlots: Math.max(0, (character.extraAbilitySlots || 0) - 1)})}
+                                        disabled={(character.extraAbilitySlots || 0) <= 0}
+                                        className="w-7 h-7 rounded flex items-center justify-center typewriter text-sm cursor-pointer hover:opacity-80 disabled:opacity-30"
+                                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>-</button>
+                                    <span className="brand-font font-bold w-6 text-center" style={{color:'var(--ink)'}}>{character.extraAbilitySlots || 0}</span>
+                                    <button onClick={() => onUpdate({...character, extraAbilitySlots: Math.min(5, (character.extraAbilitySlots || 0) + 1)})}
+                                        disabled={(character.extraAbilitySlots || 0) >= 5}
+                                        className="w-7 h-7 rounded flex items-center justify-center typewriter text-sm cursor-pointer hover:opacity-80 disabled:opacity-30"
+                                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>+</button>
+                                </div>
+                            </div>
+                            <div className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                                Each extra slot costs 1 roster slot (max 5). Total ability slots: {(template?.abilitySlots || 3) + (character.extraAbilitySlots || 0)}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Supers: Upgrade Leader to Epic */}
+                    {character.type === 'leader' && league?.optionalRules?.supers && (
+                        <div className="mb-4 p-3 rounded" style={{background:'rgba(139,26,26,0.1)', border:'1px solid var(--crimson)'}}>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="typewriter text-sm font-bold" style={{color:'var(--crimson)'}}>Supers Rule: Upgrade to Epic</div>
+                                    <div className="typewriter text-xs mt-0.5" style={{color:'var(--ink-faded)'}}>Warning: This costs 5 roster slots (leader was free)</div>
+                                </div>
+                                <button onClick={() => {
+                                    if (!confirm('Upgrade this Leader to an Epic character? This costs 5 roster slots.')) return;
+                                    onUpdate({
+                                        ...character,
+                                        type: 'epic',
+                                        level: 4,
+                                        freeAbilities: [...(character.freeAbilities || []).filter(a => a !== 'Monster'), 'Monster'],
+                                        extraAbilitySlots: character.extraAbilitySlots ?? 0,
+                                    });
+                                }}
+                                    className="px-3 py-1.5 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex-shrink-0"
+                                    style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                    Upgrade to Epic
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -2166,21 +2344,59 @@
                                 )}
 
                                 {/* Abilities */}
-                                {(character.abilities.length > 0 || character.freeAbilities.length > 0) && (
-                                    <div style={{fontSize:'11px'}}>
-                                        <div style={{fontFamily:'Special Elite, monospace', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'4px', paddingBottom:'2px'}}>Abilities</div>
-                                        {[...character.abilities, ...character.freeAbilities].map(aName => {
-                                            const ab = allAbPool.find(a => a.name === aName);
-                                            const flavour = character.abilityFlavourNames?.[aName];
-                                            return (
-                                                <div key={aName} style={{marginBottom:'4px'}}>
-                                                    <span style={{fontWeight:'bold'}}>{flavour ? `${flavour} (${aName})` : aName}</span>
-                                                    {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                {(() => {
+                                    const isEpicChar = character.type === 'epic';
+                                    const epicAbNames = isEpicChar ? (gameData.abilities.epic || []).map(a => a.name) : [];
+                                    const regularAbs = isEpicChar ? character.abilities.filter(a => !epicAbNames.includes(a)) : character.abilities;
+                                    const epicAbs = isEpicChar ? character.abilities.filter(a => epicAbNames.includes(a)) : [];
+                                    const freeAbs = character.freeAbilities || [];
+                                    const hasAny = character.abilities.length > 0 || freeAbs.length > 0;
+                                    if (!hasAny) return null;
+                                    return (
+                                        <div style={{fontSize:'11px'}}>
+                                            <div style={{fontFamily:'Special Elite, monospace', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'4px', paddingBottom:'2px'}}>Abilities</div>
+                                            {regularAbs.map(aName => {
+                                                const ab = allAbPool.find(a => a.name === aName);
+                                                const flavour = character.abilityFlavourNames?.[aName];
+                                                return (
+                                                    <div key={aName} style={{marginBottom:'4px'}}>
+                                                        <span style={{fontWeight:'bold'}}>{flavour ? `${flavour} (${aName})` : aName}</span>
+                                                        {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                                    </div>
+                                                );
+                                            })}
+                                            {epicAbs.length > 0 && (
+                                                <div style={{marginTop:'6px'}}>
+                                                    <div style={{fontFamily:'Special Elite, monospace', fontStyle:'italic', fontSize:'10px', color:'#8b1a1a', marginBottom:'2px'}}>Epic Abilities</div>
+                                                    {epicAbs.map(aName => {
+                                                        const ab = allAbPool.find(a => a.name === aName);
+                                                        return (
+                                                            <div key={aName} style={{marginBottom:'4px'}}>
+                                                                <span style={{fontWeight:'bold', color:'#8b1a1a'}}>{aName}</span>
+                                                                {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                            )}
+                                            {freeAbs.length > 0 && (
+                                                <div style={{marginTop:'6px'}}>
+                                                    <div style={{fontFamily:'Special Elite, monospace', fontStyle:'italic', fontSize:'10px', color:'#555', marginBottom:'2px'}}>Free Abilities</div>
+                                                    {freeAbs.map(aName => {
+                                                        const ab = allAbPool.find(a => a.name === aName);
+                                                        return (
+                                                            <div key={aName} style={{marginBottom:'4px'}}>
+                                                                <span style={{fontWeight:'bold'}}>{aName}</span>
+                                                                {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                                                <span style={{marginLeft:'4px', fontSize:'9px', background:'#e8f5e9', border:'1px solid #aaa', borderRadius:'2px', padding:'0 3px', color:'#2a6e5a'}}>free</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         );
                     })}
@@ -2338,6 +2554,7 @@
                 if (type === 'ally') {
                     SKILLS.forEach(s => { newChar.skillAssignments[s] = { ...newChar.skillAssignments[s], diceType: 'd6' }; });
                 }
+                // Epic: already has freeAbilities: ['Monster'] and extraAbilitySlots: 0 from EMPTY_CHARACTER
                 updateLeague(l => ({ ...l, characters: [...l.characters, newChar] }));
                 setSelectedCharId(newChar.id);
                 setActiveView('character');
