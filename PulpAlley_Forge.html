@@ -613,6 +613,810 @@
         };
 
         // ==========================================
+        // 5b. TOPBAR COMPONENT
+        // ==========================================
+        const TopBar = ({ league, updateLeague, onBack }) => (
+            <div className="p-2 flex items-center justify-between no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
+                <div className="flex items-center gap-3">
+                    <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)'}}>
+                        <Icons.ArrowLeft size={18} />
+                    </button>
+                    <span className="typewriter text-sm tracking-widest hidden sm:inline" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
+                        className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
+                    <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
+                        <Icons.Download size={16} />
+                    </button>
+                    <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
+                        <Icons.Printer size={16} />
+                    </button>
+                </div>
+            </div>
+        );
+
+        // ==========================================
+        // 5c. ROSTER SIDEBAR COMPONENT
+        // ==========================================
+        const SlotBar = ({ used, total }) => {
+            const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+            const over = used > total;
+            return (
+                <div className="mb-3">
+                    <div className="flex justify-between items-center mb-1">
+                        <span className="typewriter text-xs" style={{color:'var(--ink-light)'}}>Roster Slots</span>
+                        <span className="typewriter text-xs font-bold" style={{color: over ? 'var(--crimson)' : 'var(--ink)'}}>{used}/{total}</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full" style={{background:'var(--border)'}}>
+                        <div className="h-full rounded-full transition-all" style={{width:`${pct}%`, background: over ? 'var(--crimson)' : 'var(--leather)'}} />
+                    </div>
+                </div>
+            );
+        };
+
+        const RosterSidebar = ({ league, gameData, selectedCharId, onSelectChar, onOpenAddModal }) => {
+            const used = getUsedSlots(league, gameData);
+            const total = getTotalSlots(league, gameData);
+            const leaders = league.characters.filter(c => c.type === 'leader');
+            const sidekicks = league.characters.filter(c => c.type === 'sidekick');
+            const allies = league.characters.filter(c => c.type === 'ally');
+            const followers = league.characters.filter(c => c.type === 'follower');
+            const gangs = league.characters.filter(c => c.type === 'gang');
+
+            const CharCard = ({ c }) => {
+                const tmpl = getTemplate(gameData, c.type);
+                const isSelected = selectedCharId === c.id;
+                return (
+                    <div onClick={() => onSelectChar(c.id)}
+                        className="p-2 mb-2 rounded cursor-pointer transition-all hover:opacity-90"
+                        style={{
+                            background:'var(--paper)',
+                            border: isSelected ? '2px solid var(--crimson)' : '1px solid var(--border)',
+                            borderLeft: `4px solid ${LEVEL_COLORS[c.type]}`,
+                        }}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="typewriter text-xs uppercase" style={{color: LEVEL_COLORS[c.type]}}>{LEVEL_LABELS[c.type]}</div>
+                                <div className="brand-font text-sm font-bold truncate" style={{color:'var(--ink)', maxWidth:'140px'}}>{c.name || 'Unnamed'}</div>
+                            </div>
+                            {tmpl && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{tmpl.health}</span>}
+                        </div>
+                    </div>
+                );
+            };
+
+            const Section = ({ title, chars }) => {
+                if (chars.length === 0) return null;
+                return (
+                    <div className="mb-2">
+                        <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--ink-faded)'}}>{title}</div>
+                        {chars.map(c => <CharCard key={c.id} c={c} />)}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="w-60 overflow-y-auto p-3 no-print flex flex-col" style={{background:'var(--paper-dark)', borderRight:'2px solid var(--border)'}}>
+                    <SlotBar used={used} total={total} />
+
+                    <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Field Operatives</div>
+
+                    <div className="flex-1 overflow-y-auto">
+                        <Section title="Leader" chars={leaders} />
+                        <Section title="Sidekicks" chars={sidekicks} />
+                        <Section title="Allies" chars={allies} />
+                        <Section title="Followers" chars={followers} />
+                        <Section title="Gangs" chars={gangs} />
+
+                        {league.perks.length > 0 && (
+                            <div className="mb-2 mt-3">
+                                <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--ink-faded)'}}>Perks</div>
+                                {league.perks.map(p => (
+                                    <div key={p} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
+                                        {p}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {league.associates.length > 0 && (
+                            <div className="mb-2 mt-3">
+                                <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--ink-faded)'}}>Associates</div>
+                                {league.associates.map(a => (
+                                    <div key={a.id} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
+                                        {a.name || 'Unnamed'}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {league.characters.length === 0 && (
+                            <p className="text-xs typewriter" style={{color:'var(--ink-faded)'}}>No operatives yet</p>
+                        )}
+                    </div>
+
+                    <button onClick={onOpenAddModal}
+                        className="mt-2 w-full py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80 flex items-center justify-center gap-1"
+                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                        <Icons.Plus size={14} /> Add
+                    </button>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5d. ADD CHARACTER MODAL
+        // ==========================================
+        const AddCharacterModal = ({ league, gameData, onAdd, onClose }) => {
+            const available = getAvailableSlots(league, gameData);
+            const hasLeader = league.characters.some(c => c.type === 'leader');
+            const sidekickCount = league.characters.filter(c => c.type === 'sidekick').length;
+            const maxSK = getMaxSidekicks(league);
+            const hasMastermind = league.perks.includes('Mastermind');
+            const hasLoL = league.perks.includes('League of Legends');
+
+            const options = [
+                { type: 'leader', label: 'Leader', cost: 0, disabled: hasLeader || hasMastermind || hasLoL, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : hasLoL ? 'League of Legends: no Leader' : '' },
+                { type: 'sidekick', label: 'Sidekick', cost: 3, disabled: sidekickCount >= maxSK || available < 3, reason: sidekickCount >= maxSK ? `Max ${maxSK} Sidekick(s)` : 'Not enough slots' },
+                { type: 'ally', label: 'Ally', cost: 2, disabled: available < 2, reason: 'Not enough slots' },
+                { type: 'follower', label: 'Follower', cost: 1, disabled: available < 1, reason: 'Not enough slots' },
+                { type: 'gang', label: 'Gang', cost: 2, disabled: available < 2, reason: 'Not enough slots' },
+            ];
+
+            // Filter: Duo perk restricts to leader+sidekick only
+            const isDuo = league.perks.includes('Duo');
+            const isCompanions = league.perks.includes('Companions');
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.6)'}} onClick={onClose}>
+                    <div className="p-6 rounded-lg max-w-sm w-full" style={{background:'var(--paper)', border:'2px solid var(--border)'}} onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>Add to Roster</h2>
+                            <button onClick={onClose} className="cursor-pointer hover:opacity-70" style={{color:'var(--ink-faded)'}}>
+                                <Icons.X size={18} />
+                            </button>
+                        </div>
+                        <div className="typewriter text-xs mb-4" style={{color:'var(--ink-faded)'}}>
+                            {available} slot{available !== 1 ? 's' : ''} remaining
+                        </div>
+                        <div className="space-y-2">
+                            {options.map(opt => {
+                                let dis = opt.disabled;
+                                let reason = opt.reason;
+                                if (isDuo && !['leader','sidekick'].includes(opt.type)) { dis = true; reason = 'Duo: only Leader & Sidekick'; }
+                                if (isCompanions && opt.type === 'sidekick') { dis = true; reason = 'Companions: no Sidekick'; }
+                                return (
+                                    <button key={opt.type}
+                                        disabled={dis}
+                                        onClick={() => { onAdd(opt.type); onClose(); }}
+                                        className="w-full p-3 rounded text-left cursor-pointer transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        style={{background:'var(--paper-dark)', border:`2px solid ${LEVEL_COLORS[opt.type]}`, borderLeftWidth:'5px'}}>
+                                        <div className="flex items-center justify-between">
+                                            <span className="brand-font font-bold" style={{color: LEVEL_COLORS[opt.type]}}>{opt.label}</span>
+                                            <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{opt.cost > 0 ? `${opt.cost} slots` : 'Free'}</span>
+                                        </div>
+                                        {dis && <div className="typewriter text-xs mt-1" style={{color:'var(--crimson)'}}>{reason}</div>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5e. CHARACTER EDITOR — SKILL ASSIGNMENT
+        // ==========================================
+
+        const SkillAssignmentGrid = ({ character, gameData, onUpdate }) => {
+            const template = getTemplate(gameData, character.type);
+            if (!template) return null;
+
+            const isFollower = character.type === 'follower';
+            const isAlly = character.type === 'ally';
+            const isGang = character.type === 'gang';
+
+            // Gang has special rules — no skill assignment
+            if (isGang) {
+                const skills = computeCharacterSkills(character, gameData);
+                if (!skills) return null;
+                return (
+                    <div className="mb-6">
+                        <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Skills (Gang — auto-computed)</div>
+                        <div className="grid gap-1">
+                            {SKILLS.map(skill => (
+                                <div key={skill} className="flex items-center gap-3 py-1 px-2 rounded" style={{background:'var(--paper-dark)'}}>
+                                    <span className="typewriter text-sm w-20" style={{color:'var(--ink)'}}>{skill}</span>
+                                    <span className="brand-font font-bold text-sm" style={{color:'var(--ink)'}}>{skills[skill].display}</span>
+                                    {skills[skill].annotations.length > 0 && (
+                                        <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>({skills[skill].annotations.join(', ')})</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            // Build pools from template
+            const pools = template.skillDicePools;
+            const types = template.skillDiceTypes;
+
+            // Count pool: how many skills can be "high" count vs "low" count
+            const countOptions = [];
+            if (pools) {
+                for (let i = 0; i < pools.highCount; i++) countOptions.push(pools.high);
+                for (let i = 0; i < pools.lowCount; i++) countOptions.push(pools.low);
+            }
+
+            // Type pool: how many skills can be "high" type vs "low" type
+            const typeOptions = [];
+            if (types) {
+                for (let i = 0; i < types.highCount; i++) typeOptions.push(types.high);
+                for (let i = 0; i < types.lowCount; i++) typeOptions.push(types.low);
+            }
+
+            // Count what's been assigned
+            const assignments = character.skillAssignments || {};
+            const assignedCounts = SKILLS.map(s => assignments[s]?.count).filter(v => v != null);
+            const assignedTypes = SKILLS.map(s => assignments[s]?.diceType).filter(v => v != null);
+
+            // Available counts: pool minus what's assigned
+            const remainingCounts = [...countOptions];
+            assignedCounts.forEach(v => {
+                const idx = remainingCounts.indexOf(v);
+                if (idx >= 0) remainingCounts.splice(idx, 1);
+            });
+
+            const remainingTypes = [...typeOptions];
+            assignedTypes.forEach(v => {
+                const idx = remainingTypes.indexOf(v);
+                if (idx >= 0) remainingTypes.splice(idx, 1);
+            });
+
+            // For each skill row, compute what count options are available
+            const getCountOptionsForSkill = (skill) => {
+                const current = assignments[skill]?.count;
+                // Follower: all 1d — read-only
+                if (isFollower) return [1];
+                // Get available pool values plus current value
+                const avail = [...remainingCounts];
+                if (current != null) avail.push(current);
+                const unique = [...new Set(avail)].sort((a, b) => b - a);
+                return unique;
+            };
+
+            const getTypeOptionsForSkill = (skill) => {
+                const current = assignments[skill]?.diceType;
+                // Follower or Ally: all d6 — read-only
+                if (isFollower || isAlly) return ['d6'];
+                const avail = [...remainingTypes];
+                if (current != null) avail.push(current);
+                const unique = [...new Set(avail)].sort((a, b) => DICE_ORDER[b] - DICE_ORDER[a]);
+                return unique;
+            };
+
+            const handleCountChange = (skill, val) => {
+                const newAssignments = { ...assignments };
+                newAssignments[skill] = { ...newAssignments[skill], count: val === '' ? null : Number(val) };
+                onUpdate({ ...character, skillAssignments: newAssignments });
+            };
+
+            const handleTypeChange = (skill, val) => {
+                const newAssignments = { ...assignments };
+                newAssignments[skill] = { ...newAssignments[skill], diceType: val === '' ? null : val };
+                onUpdate({ ...character, skillAssignments: newAssignments });
+            };
+
+            // Compute final skills for display
+            const computed = computeCharacterSkills(character, gameData);
+
+            // Pool summary
+            const countPoolSummary = countOptions.length > 0
+                ? Object.entries(countOptions.reduce((acc, v) => { acc[v] = (acc[v]||0)+1; return acc; }, {})).map(([v,n]) => `${n}x${v}d`).join(', ')
+                : '';
+            const typePoolSummary = typeOptions.length > 0
+                ? Object.entries(typeOptions.reduce((acc, v) => { acc[v] = (acc[v]||0)+1; return acc; }, {})).map(([v,n]) => `${n}x${v}`).join(', ')
+                : '';
+
+            const unassignedCount = SKILLS.filter(s => assignments[s]?.count == null).length;
+            const unassignedType = SKILLS.filter(s => assignments[s]?.diceType == null).length;
+
+            return (
+                <div className="mb-6">
+                    <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--crimson)'}}>Skill Assignment</div>
+                    {!isFollower && !isAlly && (
+                        <div className="flex gap-4 mb-2 typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                            <span>Dice Count Pool: {countPoolSummary} ({remainingCounts.length} unassigned)</span>
+                            <span>Dice Type Pool: {typePoolSummary} ({remainingTypes.length} unassigned)</span>
+                        </div>
+                    )}
+                    {isAlly && (
+                        <div className="mb-2 typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                            Dice Count Pool: {countPoolSummary} ({remainingCounts.length} unassigned) — All dice are d6
+                        </div>
+                    )}
+                    {isFollower && (
+                        <div className="mb-2 typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                            All skills: 1d6 (fixed)
+                        </div>
+                    )}
+
+                    {/* Grid header */}
+                    <div className="grid gap-1" style={{gridTemplateColumns:'100px 80px 80px 1fr'}}>
+                        <div className="typewriter text-xs py-1" style={{color:'var(--ink-faded)'}}>Skill</div>
+                        <div className="typewriter text-xs py-1" style={{color:'var(--ink-faded)'}}>Count</div>
+                        <div className="typewriter text-xs py-1" style={{color:'var(--ink-faded)'}}>Type</div>
+                        <div className="typewriter text-xs py-1" style={{color:'var(--ink-faded)'}}>Final</div>
+
+                        {SKILLS.map(skill => {
+                            const countOpts = getCountOptionsForSkill(skill);
+                            const typeOpts = getTypeOptionsForSkill(skill);
+                            const currentCount = assignments[skill]?.count;
+                            const currentType = assignments[skill]?.diceType;
+                            const final = computed ? computed[skill] : null;
+                            const isReadOnlyCount = isFollower;
+                            const isReadOnlyType = isFollower || isAlly;
+
+                            return (
+                                <React.Fragment key={skill}>
+                                    <div className="typewriter text-sm py-1 flex items-center" style={{color:'var(--ink)'}}>{skill}</div>
+                                    <div className="py-1">
+                                        {isReadOnlyCount ? (
+                                            <span className="typewriter text-sm" style={{color:'var(--ink-faded)'}}>1</span>
+                                        ) : (
+                                            <select value={currentCount ?? ''} onChange={e => handleCountChange(skill, e.target.value)}
+                                                className="w-full rounded px-1 py-0.5 typewriter text-sm cursor-pointer outline-none"
+                                                style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                                <option value="">—</option>
+                                                {countOpts.map(v => <option key={v} value={v}>{v}</option>)}
+                                            </select>
+                                        )}
+                                    </div>
+                                    <div className="py-1">
+                                        {isReadOnlyType ? (
+                                            <span className="typewriter text-sm" style={{color:'var(--ink-faded)'}}>d6</span>
+                                        ) : (
+                                            <select value={currentType ?? ''} onChange={e => handleTypeChange(skill, e.target.value)}
+                                                className="w-full rounded px-1 py-0.5 typewriter text-sm cursor-pointer outline-none"
+                                                style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                                <option value="">—</option>
+                                                {typeOpts.map(v => <option key={v} value={v}>{v}</option>)}
+                                            </select>
+                                        )}
+                                    </div>
+                                    <div className="py-1 flex items-center">
+                                        <span className="brand-font font-bold text-sm" style={{color: final?.noDice ? 'var(--crimson)' : 'var(--ink)'}}>
+                                            {final ? final.display : '—'}
+                                        </span>
+                                        {final && final.annotations.length > 0 && (
+                                            <span className="typewriter text-xs ml-2" style={{color:'var(--ink-faded)'}}>
+                                                ({final.annotations.join(', ')})
+                                            </span>
+                                        )}
+                                    </div>
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5f. CHARACTER EDITOR — ABILITY PICKER
+        // ==========================================
+
+        const AbilityPicker = ({ character, gameData, onUpdate }) => {
+            const [showBrowser, setShowBrowser] = useState(false);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [levelFilter, setLevelFilter] = useState(0);
+            const template = getTemplate(gameData, character.type);
+            if (!template) return null;
+
+            const maxLevel = template.maxAbilityLevel;
+            const maxSlots = template.abilitySlots;
+            const usedSlots = character.abilities.length;
+
+            // Free abilities from Beast/Goon/Dithering
+            const freeAbilities = character.freeAbilities || [];
+
+            const removeAbility = (abilityName) => {
+                const newAbilities = character.abilities.filter(a => a !== abilityName);
+                const newChoices = { ...character.abilityChoices };
+                delete newChoices[abilityName];
+                const newFlavour = { ...character.abilityFlavourNames };
+                delete newFlavour[abilityName];
+                // Also remove any free abilities granted by this one
+                const ability = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(a => a.name === abilityName);
+                let newFree = [...freeAbilities];
+                if (ability) {
+                    ability.effects.filter(e => e.type === 'grantFreeAbilities').forEach(eff => {
+                        // Remove all free abilities that were granted by this parent
+                        newFree = [];
+                    });
+                }
+                onUpdate({ ...character, abilities: newAbilities, abilityChoices: newChoices, abilityFlavourNames: newFlavour, freeAbilities: newFree });
+            };
+
+            const removeFreeAbility = (abilityName) => {
+                onUpdate({ ...character, freeAbilities: freeAbilities.filter(a => a !== abilityName) });
+            };
+
+            const addAbility = (abilityName) => {
+                if (usedSlots >= maxSlots) return;
+                const ability = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(a => a.name === abilityName);
+                if (!ability) return;
+                let updated = { ...character, abilities: [...character.abilities, abilityName] };
+                // Check if ability has pick2 target
+                const hasPick = ability.effects.some(e => typeof e.target === 'string' && e.target.startsWith('pick'));
+                if (hasPick) {
+                    // Will need to pick skills — initialize empty
+                    updated.abilityChoices = { ...updated.abilityChoices, [abilityName]: [] };
+                }
+                onUpdate(updated);
+                setShowBrowser(false);
+            };
+
+            const addFreeAbility = (abilityName, parentAbility) => {
+                onUpdate({ ...character, freeAbilities: [...freeAbilities, abilityName] });
+            };
+
+            const setAbilityChoice = (abilityName, skills) => {
+                onUpdate({ ...character, abilityChoices: { ...character.abilityChoices, [abilityName]: skills } });
+            };
+
+            const setFlavourName = (abilityName, name) => {
+                onUpdate({ ...character, abilityFlavourNames: { ...character.abilityFlavourNames, [abilityName]: name } });
+            };
+
+            // Find abilities that grant free abilities
+            const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
+            const grantingAbilities = character.abilities.filter(aName => {
+                const ab = allAbPool.find(a => a.name === aName);
+                return ab && ab.effects.some(e => e.type === 'grantFreeAbilities');
+            });
+
+            // Get the available pool for browsing
+            const browseAbilities = (() => {
+                const available = getAbilitiesForLevel(gameData, maxLevel);
+                const filtered = available.filter(ab => {
+                    if (searchTerm && !ab.name.toLowerCase().includes(searchTerm.toLowerCase()) && !ab.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+                    if (levelFilter > 0 && ab.level !== levelFilter) return false;
+                    return true;
+                });
+                return filtered;
+            })();
+
+            const AbilityCard = ({ abilityName, isFree, onRemove }) => {
+                const ab = allAbPool.find(a => a.name === abilityName);
+                if (!ab) return <div className="text-xs typewriter p-2 rounded mb-2" style={{background:'var(--paper-dark)',color:'var(--crimson)'}}>Unknown: {abilityName}</div>;
+
+                const hasPick = ab.effects.some(e => typeof e.target === 'string' && e.target.startsWith('pick'));
+                const pickCount = hasPick ? parseInt(ab.effects.find(e => typeof e.target === 'string' && e.target.startsWith('pick')).target.replace('pick', '')) : 0;
+                const currentPicks = character.abilityChoices[abilityName] || [];
+
+                const grantEffects = ab.effects.filter(e => e.type === 'grantFreeAbilities');
+
+                return (
+                    <div className="p-3 rounded mb-2" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="brand-font font-bold text-sm" style={{color:'var(--ink)'}}>{ab.name}</span>
+                                    <span className="typewriter text-xs px-1 rounded" style={{background:'var(--leather)', color:'var(--paper)'}}>L{ab.level}</span>
+                                    {isFree && <span className="typewriter text-xs px-1 rounded" style={{background:'#2a6e5a', color:'var(--paper)'}}>Free</span>}
+                                </div>
+                                <div className="typewriter text-xs mt-1" style={{color:'var(--ink-light)'}}>{ab.description}</div>
+                            </div>
+                            <button onClick={onRemove} className="cursor-pointer hover:opacity-70 ml-2 flex-shrink-0" style={{color:'var(--crimson)'}}>
+                                <Icons.X size={14} />
+                            </button>
+                        </div>
+
+                        {/* Flavour name input */}
+                        {!isFree && (
+                            <div className="mt-2">
+                                <input value={character.abilityFlavourNames[abilityName] || ''} onChange={e => setFlavourName(abilityName, e.target.value)}
+                                    placeholder="Flavour name (optional)..."
+                                    className="w-full text-xs typewriter px-2 py-1 rounded outline-none"
+                                    style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}} />
+                            </div>
+                        )}
+
+                        {/* Pick skills prompt */}
+                        {hasPick && (
+                            <div className="mt-2 p-2 rounded" style={{background:'var(--paper)', border:'1px dashed var(--border)'}}>
+                                <div className="typewriter text-xs mb-1" style={{color:'var(--crimson)'}}>Select {pickCount} skill{pickCount > 1 ? 's' : ''}:</div>
+                                <div className="flex flex-wrap gap-1">
+                                    {SKILLS.map(skill => {
+                                        const selected = currentPicks.includes(skill);
+                                        const canSelect = selected || currentPicks.length < pickCount;
+                                        return (
+                                            <button key={skill}
+                                                disabled={!canSelect && !selected}
+                                                onClick={() => {
+                                                    if (selected) setAbilityChoice(abilityName, currentPicks.filter(s => s !== skill));
+                                                    else if (canSelect) setAbilityChoice(abilityName, [...currentPicks, skill]);
+                                                }}
+                                                className="px-2 py-0.5 rounded typewriter text-xs cursor-pointer transition-all disabled:opacity-30"
+                                                style={{
+                                                    background: selected ? 'var(--leather)' : 'var(--paper-dark)',
+                                                    color: selected ? 'var(--paper)' : 'var(--ink)',
+                                                    border: `1px solid ${selected ? 'var(--leather)' : 'var(--border)'}`,
+                                                }}>
+                                                {skill}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Grant free abilities prompt */}
+                        {grantEffects.map((eff, i) => {
+                            const needed = eff.count;
+                            const fromList = eff.fromList;
+                            // Resolve "level1" to all level 1 abilities
+                            const availableForGrant = fromList.includes('level1')
+                                ? gameData.abilities.level1.map(a => a.name)
+                                : fromList;
+                            const currentFree = freeAbilities.filter(f => availableForGrant.includes(f));
+                            const stillNeeded = needed - currentFree.length;
+
+                            return (
+                                <div key={i} className="mt-2 p-2 rounded" style={{background:'var(--paper)', border:'1px dashed var(--border)'}}>
+                                    <div className="typewriter text-xs mb-1" style={{color:'var(--crimson)'}}>
+                                        Select {needed} free abilit{needed > 1 ? 'ies' : 'y'} ({currentFree.length}/{needed} chosen):
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                        {availableForGrant.map(aName => {
+                                            const selected = freeAbilities.includes(aName);
+                                            const canAdd = !selected && stillNeeded > 0;
+                                            const errors = !selected ? validateAbilityForCharacter(aName, character, gameData) : [];
+                                            const blocked = errors.length > 0;
+                                            return (
+                                                <button key={aName}
+                                                    disabled={(!canAdd && !selected) || (blocked && !selected)}
+                                                    onClick={() => {
+                                                        if (selected) removeFreeAbility(aName);
+                                                        else if (canAdd && !blocked) addFreeAbility(aName, abilityName);
+                                                    }}
+                                                    title={blocked ? errors.join(', ') : ''}
+                                                    className="px-2 py-0.5 rounded typewriter text-xs cursor-pointer transition-all disabled:opacity-30"
+                                                    style={{
+                                                        background: selected ? '#2a6e5a' : blocked ? 'var(--paper-dark)' : 'var(--paper-dark)',
+                                                        color: selected ? 'var(--paper)' : blocked ? 'var(--ink-faded)' : 'var(--ink)',
+                                                        border: `1px solid ${selected ? '#2a6e5a' : 'var(--border)'}`,
+                                                        textDecoration: blocked ? 'line-through' : 'none',
+                                                    }}>
+                                                    {aName}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="typewriter text-xs uppercase tracking-wider" style={{color:'var(--crimson)'}}>Abilities ({usedSlots}/{maxSlots})</div>
+                        {usedSlots < maxSlots && (
+                            <button onClick={() => { setShowBrowser(true); setSearchTerm(''); }}
+                                className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
+                                style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                                <Icons.Plus size={12} /> Add Ability
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Selected abilities */}
+                    {character.abilities.map(aName => (
+                        <AbilityCard key={aName} abilityName={aName} isFree={false} onRemove={() => removeAbility(aName)} />
+                    ))}
+
+                    {/* Free abilities (not part of parent grant — standalone display) */}
+                    {freeAbilities.filter(f => {
+                        // Only show standalone free abilities that aren't shown under a parent grant
+                        const isFromGrant = grantingAbilities.some(parent => {
+                            const pAb = allAbPool.find(a => a.name === parent);
+                            if (!pAb) return false;
+                            return pAb.effects.some(e => {
+                                if (e.type !== 'grantFreeAbilities') return false;
+                                const list = e.fromList.includes('level1') ? gameData.abilities.level1.map(a => a.name) : e.fromList;
+                                return list.includes(f);
+                            });
+                        });
+                        return !isFromGrant;
+                    }).map(aName => (
+                        <AbilityCard key={aName} abilityName={aName} isFree={true} onRemove={() => removeFreeAbility(aName)} />
+                    ))}
+
+                    {character.abilities.length === 0 && freeAbilities.length === 0 && (
+                        <div className="text-xs typewriter p-3 rounded text-center" style={{background:'var(--paper-dark)', color:'var(--ink-faded)', border:'1px dashed var(--border)'}}>
+                            No abilities selected
+                        </div>
+                    )}
+
+                    {/* Ability Browser Modal */}
+                    {showBrowser && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.6)'}} onClick={() => setShowBrowser(false)}>
+                            <div className="p-4 rounded-lg w-full max-w-lg max-h-[80vh] flex flex-col" style={{background:'var(--paper)', border:'2px solid var(--border)'}} onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>Select Ability</h3>
+                                    <button onClick={() => setShowBrowser(false)} className="cursor-pointer hover:opacity-70" style={{color:'var(--ink-faded)'}}>
+                                        <Icons.X size={18} />
+                                    </button>
+                                </div>
+                                <div className="flex gap-2 mb-3">
+                                    <div className="flex-1 relative">
+                                        <Icons.Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2" style={{color:'var(--ink-faded)'}} />
+                                        <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                            placeholder="Search abilities..."
+                                            className="w-full pl-7 pr-2 py-1.5 rounded typewriter text-sm outline-none"
+                                            style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}} />
+                                    </div>
+                                    <select value={levelFilter} onChange={e => setLevelFilter(Number(e.target.value))}
+                                        className="px-2 py-1 rounded typewriter text-sm cursor-pointer outline-none"
+                                        style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                        <option value={0}>All Levels</option>
+                                        {Array.from({length: maxLevel}, (_,i) => i+1).map(l => <option key={l} value={l}>Level {l}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1 overflow-y-auto space-y-1">
+                                    {browseAbilities.map(ab => {
+                                        const errors = validateAbilityForCharacter(ab.name, character, gameData);
+                                        const blocked = errors.length > 0;
+                                        return (
+                                            <button key={ab.name}
+                                                disabled={blocked}
+                                                onClick={() => addAbility(ab.name)}
+                                                className="w-full text-left p-2 rounded cursor-pointer transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="brand-font font-bold text-sm" style={{color: blocked ? 'var(--ink-faded)' : 'var(--ink)'}}>{ab.name}</span>
+                                                    <span className="typewriter text-xs px-1 rounded" style={{background:'var(--leather)', color:'var(--paper)'}}>L{ab.level}</span>
+                                                </div>
+                                                <div className="typewriter text-xs mt-0.5" style={{color:'var(--ink-faded)'}}>{ab.description}</div>
+                                                {blocked && <div className="typewriter text-xs mt-0.5" style={{color:'var(--crimson)'}}>{errors.join(' | ')}</div>}
+                                            </button>
+                                        );
+                                    })}
+                                    {browseAbilities.length === 0 && (
+                                        <div className="text-center typewriter text-sm py-4" style={{color:'var(--ink-faded)'}}>No matching abilities</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5g. CHARACTER EDITOR (FULL)
+        // ==========================================
+        const CharacterEditor = ({ character, gameData, league, onUpdate, onDelete }) => {
+            const imgRef = useRef(null);
+            const template = getTemplate(gameData, character.type);
+
+            const handleImageUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const data = await resizeImage(file, 128);
+                    onUpdate({ ...character, image: data });
+                } catch { alert('Could not load image'); }
+            };
+
+            return (
+                <div className="flex-1 overflow-y-auto p-6">
+                    {/* Header */}
+                    <div className="flex items-start gap-4 mb-6">
+                        {/* Image */}
+                        <div className="flex-shrink-0 cursor-pointer" onClick={() => imgRef.current?.click()}>
+                            <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                            {character.image ? (
+                                <img src={character.image} className="w-16 h-16 rounded object-cover" style={{border:'2px solid var(--border)'}} />
+                            ) : (
+                                <div className="w-16 h-16 rounded flex items-center justify-center" style={{background:'var(--paper-dark)', border:'2px dashed var(--border)'}}>
+                                    <Icons.Image size={20} className="" style={{color:'var(--ink-faded)'}} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Name + type */}
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="typewriter text-xs uppercase px-2 py-0.5 rounded" style={{background: LEVEL_COLORS[character.type], color:'var(--paper)'}}>
+                                    {LEVEL_LABELS[character.type]}
+                                </span>
+                                {template && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Health: {template.health}</span>}
+                                {character.type === 'gang' && (
+                                    <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Models: {character.gangModels || 5}</span>
+                                )}
+                            </div>
+                            <input value={character.name} onChange={e => onUpdate({...character, name: e.target.value})}
+                                placeholder="Character name..."
+                                className="w-full text-xl brand-font font-bold bg-transparent border-b-2 outline-none px-0 py-1"
+                                style={{color:'var(--ink)', borderColor:'var(--border)'}} />
+                        </div>
+
+                        {/* Delete button */}
+                        <button onClick={() => { if (confirm(`Delete ${character.name || 'this character'}?`)) onDelete(character.id); }}
+                            className="p-2 rounded cursor-pointer hover:opacity-70 flex-shrink-0" style={{color:'var(--crimson)'}} title="Delete character">
+                            <Icons.Trash2 size={18} />
+                        </button>
+                    </div>
+
+                    {/* Gang model count */}
+                    {character.type === 'gang' && (
+                        <div className="mb-4 flex items-center gap-3">
+                            <span className="typewriter text-sm" style={{color:'var(--ink-light)'}}>Number of Models:</span>
+                            <select value={character.gangModels || 5} onChange={e => onUpdate({...character, gangModels: Number(e.target.value)})}
+                                className="px-2 py-1 rounded typewriter text-sm cursor-pointer outline-none"
+                                style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Skill Assignment */}
+                    <SkillAssignmentGrid character={character} gameData={gameData} onUpdate={onUpdate} />
+
+                    {/* Ability Picker */}
+                    <AbilityPicker character={character} gameData={gameData} onUpdate={onUpdate} />
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5h. EMPTY STATE
+        // ==========================================
+        const EmptyState = ({ league, onAddLeader, onOpenAddModal }) => {
+            const hasChars = league.characters.length > 0;
+            const hasLeader = league.characters.some(c => c.type === 'leader');
+            return (
+                <div className="flex-1 flex items-center justify-center p-6">
+                    <div className="text-center">
+                        {!hasChars ? (
+                            <>
+                                <Icons.Users size={48} className="mx-auto mb-4" style={{color:'var(--ink-faded)'}} />
+                                <h2 className="brand-font text-xl font-bold mb-2" style={{color:'var(--ink)'}}>Assemble Your League</h2>
+                                <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>Start by creating your Leader — every league needs one.</p>
+                                <button onClick={onAddLeader}
+                                    className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                    style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                    Create Leader
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Icons.FileText size={48} className="mx-auto mb-4" style={{color:'var(--ink-faded)'}} />
+                                <h2 className="brand-font text-xl font-bold mb-2" style={{color:'var(--ink)'}}>Select a Character</h2>
+                                <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>Choose a character from the sidebar to edit their dossier.</p>
+                                {!hasLeader && (
+                                    <button onClick={onAddLeader}
+                                        className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                        style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                        Create Leader
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
         // 6. LEAGUE SELECTOR COMPONENT
         // ==========================================
         const LeagueSelector = ({ gameData, onSelect, onCreate }) => {
@@ -675,8 +1479,8 @@
             const [gameData, setGameData] = useState(null);
             const [league, setLeague] = useState(null);
             const [showLeagueSelector, setShowLeagueSelector] = useState(true);
-            const [activeView, setActiveView] = useState('roster');
             const [selectedCharId, setSelectedCharId] = useState(null);
+            const [showAddModal, setShowAddModal] = useState(false);
             const [toast, setToast] = useState(null);
 
             const showToast = (msg, type='info') => { setToast({msg, type}); setTimeout(() => setToast(null), 3000); };
@@ -692,53 +1496,77 @@
                 setLeague(prev => typeof updater === 'function' ? updater(prev) : updater);
             }, []);
 
+            const addCharacter = useCallback((type) => {
+                const tmpl = gameData ? getTemplate(gameData, type) : null;
+                const newChar = EMPTY_CHARACTER(type, tmpl ? {} : undefined);
+                // For follower, pre-fill all skills to 1d6
+                if (type === 'follower') {
+                    SKILLS.forEach(s => { newChar.skillAssignments[s] = { count: 1, diceType: 'd6' }; });
+                }
+                // For ally, pre-fill all dice types to d6
+                if (type === 'ally') {
+                    SKILLS.forEach(s => { newChar.skillAssignments[s] = { ...newChar.skillAssignments[s], diceType: 'd6' }; });
+                }
+                updateLeague(l => ({ ...l, characters: [...l.characters, newChar] }));
+                setSelectedCharId(newChar.id);
+            }, [gameData, updateLeague]);
+
+            const updateCharacter = useCallback((updatedChar) => {
+                updateLeague(l => ({
+                    ...l,
+                    characters: l.characters.map(c => c.id === updatedChar.id ? updatedChar : c),
+                }));
+            }, [updateLeague]);
+
+            const deleteCharacter = useCallback((charId) => {
+                updateLeague(l => ({ ...l, characters: l.characters.filter(c => c.id !== charId) }));
+                setSelectedCharId(prev => prev === charId ? null : prev);
+            }, [updateLeague]);
+
             if (!gameData) return <DataLoader onLoad={setGameData} />;
             if (showLeagueSelector || !league) return <LeagueSelector gameData={gameData} onSelect={(l) => { setLeague(l); setShowLeagueSelector(false); }} onCreate={() => { const l = EMPTY_LEAGUE(); setLeague(l); setShowLeagueSelector(false); }} />;
 
+            const selectedChar = league.characters.find(c => c.id === selectedCharId);
+
             return (
                 <div className="h-full flex flex-col" style={{background:'var(--paper)'}}>
-                    {/* TopBar placeholder */}
-                    <div className="p-2 flex items-center justify-between no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
-                        <div className="flex items-center gap-3">
-                            <button onClick={() => { setShowLeagueSelector(true); setSelectedCharId(null); }} className="cursor-pointer" style={{color:'var(--paper)'}}>
-                                <Icons.ArrowLeft size={18} />
-                            </button>
-                            <span className="typewriter text-sm tracking-widest" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
-                                className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
-                            <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
-                                <Icons.Download size={16} />
-                            </button>
-                            <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
-                                <Icons.Printer size={16} />
-                            </button>
-                        </div>
-                    </div>
+                    <TopBar league={league} updateLeague={updateLeague} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); }} />
+
                     <div className="flex-1 overflow-hidden flex">
-                        {/* Sidebar placeholder */}
-                        <div className="w-60 overflow-y-auto p-3 no-print" style={{background:'var(--paper-dark)', borderRight:'2px solid var(--border)'}}>
-                            <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Field Operatives</div>
-                            {league.characters.length === 0 ? (
-                                <p className="text-xs typewriter" style={{color:'var(--ink-faded)'}}>No operatives yet</p>
-                            ) : league.characters.map(c => (
-                                <div key={c.id} onClick={() => { setSelectedCharId(c.id); setActiveView('character'); }}
-                                    className="p-2 mb-2 rounded cursor-pointer"
-                                    style={{background:'var(--paper)', border: selectedCharId === c.id ? '2px solid var(--crimson)' : '1px solid var(--border)', borderLeft: `3px solid ${LEVEL_COLORS[c.type]}`}}>
-                                    <div className="typewriter text-xs uppercase" style={{color: LEVEL_COLORS[c.type]}}>{LEVEL_LABELS[c.type]}</div>
-                                    <div className="brand-font text-sm font-bold" style={{color:'var(--ink)'}}>{c.name || 'Unnamed'}</div>
-                                </div>
-                            ))}
-                        </div>
-                        {/* Center panel placeholder */}
-                        <div className="flex-1 overflow-y-auto p-6">
-                            <p className="typewriter" style={{color:'var(--ink)'}}>
-                                {activeView} view — {league.characters.length} characters
-                            </p>
-                        </div>
+                        <RosterSidebar
+                            league={league} gameData={gameData}
+                            selectedCharId={selectedCharId}
+                            onSelectChar={(id) => setSelectedCharId(id)}
+                            onOpenAddModal={() => setShowAddModal(true)}
+                        />
+
+                        {selectedChar ? (
+                            <CharacterEditor
+                                key={selectedChar.id}
+                                character={selectedChar}
+                                gameData={gameData}
+                                league={league}
+                                onUpdate={updateCharacter}
+                                onDelete={deleteCharacter}
+                            />
+                        ) : (
+                            <EmptyState
+                                league={league}
+                                onAddLeader={() => addCharacter('leader')}
+                                onOpenAddModal={() => setShowAddModal(true)}
+                            />
+                        )}
                     </div>
-                    {toast && <div className="fixed top-4 right-4 px-4 py-2 rounded shadow-lg typewriter text-sm toast" style={{background: toast.type==='error'?'var(--crimson)':'var(--leather)', color:'var(--paper)'}}>{toast.msg}</div>}
+
+                    {showAddModal && (
+                        <AddCharacterModal
+                            league={league} gameData={gameData}
+                            onAdd={addCharacter}
+                            onClose={() => setShowAddModal(false)}
+                        />
+                    )}
+
+                    {toast && <div className="fixed top-4 right-4 px-4 py-2 rounded shadow-lg typewriter text-sm toast z-50" style={{background: toast.type==='error'?'var(--crimson)':'var(--leather)', color:'var(--paper)'}}>{toast.msg}</div>}
                 </div>
             );
         };
