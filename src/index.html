@@ -183,7 +183,7 @@
                 secretSocietyPerks: [],
             },
             genre: null,
-            optionalRules: { weapons: false, harrowing: false, supers: false, deadAlive: false, heartless: false, roadWarriors: false, scavengeAndSurvive: false, singleShot: false },
+            optionalRules: { weapons: false, harrowing: false, supers: false, deadAlive: false, heartless: false, roadWarriors: false, scavengeAndSurvive: false, singleShot: false, gritty: false, primitive: false, tableLevels: false, horrorMode: false, soloPlay: false, coOp: false, fivePlus: false, gamemaster: false, npcRules: false, bystanders: false },
         });
 
         // LocalStorage helpers
@@ -561,9 +561,10 @@
             });
         };
 
-        const finalizeSkills = (skills, genre) => {
-            // Genre: find the max dice type cap (e.g., Westerns "Gritty" caps at d8)
-            const genreMaxDice = genre?.modifiers?.find(m => m.name === 'Gritty') ? 'd8' : null;
+        const finalizeSkills = (skills, genre, optionalRules) => {
+            // Gritty caps dice at d8 — either from genre modifier OR standalone setting
+            const isGritty = genre?.modifiers?.find(m => m.name === 'Gritty') || optionalRules?.gritty;
+            const genreMaxDice = isGritty ? 'd8' : null;
 
             SKILLS.forEach(skill => {
                 const s = skills[skill];
@@ -587,11 +588,11 @@
             });
         };
 
-        const computeCharacterSkills = (character, gameData, genre) => {
+        const computeCharacterSkills = (character, gameData, genre, optionalRules) => {
             const template = getTemplate(gameData, character.type);
             if (!template) return null;
 
-            if (character.type === 'gang') return computeGangSkills(character, gameData, genre);
+            if (character.type === 'gang') return computeGangSkills(character, gameData, genre, optionalRules);
 
             const skills = {};
             SKILLS.forEach(skill => {
@@ -604,11 +605,11 @@
             });
 
             applyAbilityEffects(skills, [...character.abilities, ...character.freeAbilities], character, gameData);
-            finalizeSkills(skills, genre);
+            finalizeSkills(skills, genre, optionalRules);
             return skills;
         };
 
-        const computeGangSkills = (character, gameData, genre) => {
+        const computeGangSkills = (character, gameData, genre, optionalRules) => {
             const models = character.gangModels || 5;
             const combatDice = Math.ceil(models / 2);
             const skills = {};
@@ -622,7 +623,7 @@
             });
 
             applyAbilityEffects(skills, [...character.abilities, ...character.freeAbilities], character, gameData);
-            finalizeSkills(skills, genre);
+            finalizeSkills(skills, genre, optionalRules);
             return skills;
         };
 
@@ -864,6 +865,9 @@
             const hasMastermind = league.perks.includes('Mastermind');
             const hasLoL = league.perks.includes('League of Legends');
             const supersEnabled = league.optionalRules?.supers;
+            const fivePlusMode = league.optionalRules?.fivePlus;
+            const charCount = league.characters.length;
+            const atFivePlusCap = fivePlusMode && charCount >= 3;
 
             const options = [
                 { type: 'leader', label: 'Leader', cost: 0, desc: '', disabled: hasLeader || hasMastermind || hasLoL, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : hasLoL ? 'League of Legends: no Leader' : '' },
@@ -873,6 +877,11 @@
                 { type: 'gang', label: 'Gang', cost: 2, desc: '', disabled: available < 2, reason: 'Not enough slots' },
                 ...(supersEnabled ? [{ type: 'epic', label: 'Epic', cost: 5, desc: '3 abilities + 1 epic ability + Monster free.', disabled: available < 5, reason: 'Not enough slots (need 5)' }] : []),
             ];
+
+            // 5+ Players mode: cap at 3 characters
+            if (atFivePlusCap) {
+                options.forEach(o => { if (o.type !== 'leader' || hasLeader) { o.disabled = true; o.reason = '5+ Players: max 3 characters'; } });
+            }
 
             // Filter: Duo perk restricts to leader+sidekick only
             const isDuo = league.perks.includes('Duo');
@@ -934,7 +943,7 @@
 
             // Gang has special rules — no skill assignment
             if (isGang) {
-                const skills = computeCharacterSkills(character, gameData, activeGenre);
+                const skills = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules);
                 if (!skills) return null;
                 return (
                     <div className="mb-6">
@@ -1025,7 +1034,7 @@
             };
 
             // Compute final skills for display
-            const computed = computeCharacterSkills(character, gameData, activeGenre);
+            const computed = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules);
 
             // Pool summary
             const countPoolSummary = countOptions.length > 0
@@ -1629,28 +1638,35 @@
                         </div>
                     </div>
 
-                    {/* Optional settings from JSON */}
-                    <div className="p-4 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
-                        <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Advanced Settings</div>
-                        <div className="space-y-3">
-                            {settings.map(({ name, label, description }) => (
-                                <div key={name} className="flex items-start gap-3 p-3 rounded cursor-pointer hover:opacity-90 transition-all"
-                                    style={{background: rules[name] ? 'var(--leather)' : 'var(--paper)', border: `2px solid ${rules[name] ? 'var(--crimson)' : 'var(--border)'}`}}
-                                    onClick={() => toggle(name)}>
-                                    <div className="flex-shrink-0 w-10 h-6 rounded-full relative mt-0.5" style={{background: rules[name] ? 'var(--crimson)' : 'var(--border)'}}>
-                                        <div className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{background:'white', left: rules[name] ? '18px' : '2px'}} />
-                                    </div>
-                                    <div>
-                                        <div className="brand-font font-bold text-sm" style={{color: rules[name] ? 'var(--paper)' : 'var(--ink)'}}>{label}</div>
-                                        <div className="typewriter text-xs mt-0.5" style={{color: rules[name] ? 'var(--paper-dark)' : 'var(--ink-light)'}}>{description}</div>
-                                    </div>
+                    {/* Settings grouped by category */}
+                    {[
+                        { title: 'Combat & Survival', keys: ['deadAlive', 'heartless', 'singleShot', 'scavengeAndSurvive', 'gritty', 'primitive'] },
+                        { title: 'Scenario & Table', keys: ['roadWarriors', 'tableLevels', 'horrorMode', 'npcRules', 'bystanders'] },
+                        { title: 'Player Modes', keys: ['soloPlay', 'coOp', 'fivePlus', 'gamemaster'] },
+                    ].map(group => {
+                        const groupSettings = group.keys.map(k => settings.find(s => s.name === k)).filter(Boolean);
+                        if (groupSettings.length === 0) return null;
+                        return (
+                            <div key={group.title} className="mb-6 p-4 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                                <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>{group.title}</div>
+                                <div className="space-y-3">
+                                    {groupSettings.map(({ name, label, description }) => (
+                                        <div key={name} className="flex items-start gap-3 p-3 rounded cursor-pointer hover:opacity-90 transition-all"
+                                            style={{background: rules[name] ? 'var(--leather)' : 'var(--paper)', border: `2px solid ${rules[name] ? 'var(--crimson)' : 'var(--border)'}`}}
+                                            onClick={() => toggle(name)}>
+                                            <div className="flex-shrink-0 w-10 h-6 rounded-full relative mt-0.5" style={{background: rules[name] ? 'var(--crimson)' : 'var(--border)'}}>
+                                                <div className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{background:'white', left: rules[name] ? '18px' : '2px'}} />
+                                            </div>
+                                            <div>
+                                                <div className="brand-font font-bold text-sm" style={{color: rules[name] ? 'var(--paper)' : 'var(--ink)'}}>{label}</div>
+                                                <div className="typewriter text-xs mt-0.5" style={{color: rules[name] ? 'var(--paper-dark)' : 'var(--ink-light)'}}>{description}</div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                            {settings.length === 0 && (
-                                <div className="typewriter text-xs text-center py-4" style={{color:'var(--ink-faded)'}}>No optional settings defined in data file.</div>
-                            )}
-                        </div>
-                    </div>
+                            </div>
+                        );
+                    })}
                 </div>
             );
         };
@@ -2573,7 +2589,7 @@
                     {/* Character Cards */}
                     {league.characters.map(character => {
                         const template = getTemplate(gameData, character.type);
-                        const skills = computeCharacterSkills(character, gameData, activeGenre);
+                        const skills = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules);
                         return (
                             <div key={character.id} className="print-card" style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', marginBottom:'16px', padding:'12px', background:'#fff'}}>
                                 <div style={{display:'flex', alignItems:'flex-start', gap:'12px', marginBottom:'8px'}}>
