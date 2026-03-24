@@ -182,6 +182,7 @@
                 secretSociety: null,
                 secretSocietyPerks: [],
             },
+            actingLeaderId: null, // for League of Legends / Mastermind: which sidekick fills leader role
             genre: null,
             optionalRules: { weapons: false, harrowing: false, supers: false, deadAlive: false, heartless: false, roadWarriors: false, scavengeAndSurvive: false, singleShot: false, gritty: false, primitive: false, tableLevels: false, horrorMode: false, soloPlay: false, coOp: false, fivePlus: false, gamemaster: false, npcRules: false, bystanders: false },
         });
@@ -394,7 +395,10 @@
 
         const getUsedSlots = (league, gameData) => {
             let used = 0;
+            const hasLoL = league.perks.includes('League of Legends');
             league.characters.forEach(c => {
+                // League of Legends: 4 sidekicks are included in the perk cost (free)
+                if (hasLoL && c.type === 'sidekick') return;
                 const tmpl = getTemplate(gameData, c.type);
                 if (tmpl) used += tmpl.rosterSlotCost;
                 // Epic characters can spend extra roster slots for additional abilities
@@ -411,6 +415,7 @@
         const getAvailableSlots = (league, gameData) => getTotalSlots(league, gameData) - getUsedSlots(league, gameData);
 
         const getMaxSidekicks = (league) => {
+            if (league.perks.includes('League of Legends')) return 4;
             if (league.perks.includes('Company of Heroes')) return 2;
             return 1;
         };
@@ -759,7 +764,10 @@
                             <div className="flex items-center gap-1">
                                 {incomplete && <Icons.AlertTriangle size={12} style={{color:'var(--crimson)'}} />}
                                 <div>
-                                    <div className="typewriter text-xs uppercase" style={{color: LEVEL_COLORS[c.type]}}>{LEVEL_LABELS[c.type]}</div>
+                                    <div className="typewriter text-xs uppercase" style={{color: LEVEL_COLORS[c.type]}}>
+                                        {LEVEL_LABELS[c.type]}
+                                        {league.actingLeaderId === c.id && <span style={{color:'var(--crimson)'}}> (Leader)</span>}
+                                    </div>
                                     <div className="brand-font text-sm font-bold truncate" style={{color:'var(--ink)', maxWidth:'130px'}}>{c.name || 'Unnamed'}</div>
                                 </div>
                             </div>
@@ -883,8 +891,11 @@
             const charCount = league.characters.length;
             const atFivePlusCap = fivePlusMode && charCount >= 3;
 
-            const options = [
-                { type: 'leader', label: 'Leader', cost: 0, desc: '', disabled: hasLeader || hasMastermind || hasLoL, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : hasLoL ? 'League of Legends: no Leader' : '' },
+            // League of Legends: only Sidekicks (up to 4, included in perk cost = free)
+            const options = hasLoL ? [
+                { type: 'sidekick', label: 'Sidekick', cost: 0, desc: 'Included in League of Legends perk. One will fill the Leader role.', disabled: sidekickCount >= 4, reason: sidekickCount >= 4 ? 'Max 4 Sidekicks (League of Legends)' : '' },
+            ] : [
+                { type: 'leader', label: 'Leader', cost: 0, desc: '', disabled: hasLeader || hasMastermind, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : '' },
                 { type: 'sidekick', label: 'Sidekick', cost: 3, desc: '', disabled: sidekickCount >= maxSK || available < 3, reason: sidekickCount >= maxSK ? `Max ${maxSK} Sidekick(s)` : 'Not enough slots' },
                 { type: 'ally', label: 'Ally', cost: 2, desc: '', disabled: available < 2, reason: 'Not enough slots' },
                 { type: 'follower', label: 'Follower', cost: 1, desc: '', disabled: available < 1, reason: 'Not enough slots' },
@@ -1688,7 +1699,7 @@
         // ==========================================
         // 5g. CHARACTER EDITOR (FULL)
         // ==========================================
-        const CharacterEditor = ({ character, gameData, league, onUpdate, onDelete }) => {
+        const CharacterEditor = ({ character, gameData, league, onUpdate, onDelete, updateLeague }) => {
             const imgRef = useRef(null);
             const template = getTemplate(gameData, character.type);
 
@@ -1726,6 +1737,19 @@
                                 {template && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Health: {template.health}</span>}
                                 {character.type === 'gang' && (
                                     <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Models: {character.gangModels || 5}</span>
+                                )}
+                                {/* Acting Leader toggle for LoL/Mastermind sidekicks */}
+                                {character.type === 'sidekick' && (league.perks.includes('League of Legends') || league.perks.includes('Mastermind')) && (
+                                    <button
+                                        onClick={() => updateLeague(l => ({...l, actingLeaderId: l.actingLeaderId === character.id ? null : character.id}))}
+                                        className="typewriter text-xs px-2 py-0.5 rounded cursor-pointer transition-all"
+                                        style={{
+                                            background: league.actingLeaderId === character.id ? 'var(--crimson)' : 'transparent',
+                                            color: league.actingLeaderId === character.id ? 'var(--paper)' : 'var(--crimson)',
+                                            border: '1px solid var(--crimson)',
+                                        }}>
+                                        {league.actingLeaderId === character.id ? 'Acting Leader' : 'Set as Acting Leader'}
+                                    </button>
                                 )}
                             </div>
                             <input value={character.name} onChange={e => onUpdate({...character, name: e.target.value})}
@@ -2614,7 +2638,7 @@
                                         <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                                             <span style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'18px', fontWeight:'bold'}}>{character.name || 'Unnamed'}</span>
                                             <span style={{fontSize:'10px', fontFamily:'Special Elite, monospace', padding:'1px 6px', border:'1px solid #000', borderRadius:'3px', textTransform:'uppercase'}}>
-                                                {LEVEL_LABELS[character.type]}
+                                                {LEVEL_LABELS[character.type]}{league.actingLeaderId === character.id ? ' (Acting Leader)' : ''}
                                             </span>
                                         </div>
                                         {template && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Health: {template.health}</div>}
@@ -2912,6 +2936,7 @@
                             league={league}
                             onUpdate={updateCharacter}
                             onDelete={deleteCharacter}
+                            updateLeague={updateLeague}
                         />
                     );
                 }
