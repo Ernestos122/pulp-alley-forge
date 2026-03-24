@@ -1460,5 +1460,34 @@
     { "threshold": 125, "name": "Secret War", "description": "Select a Rank 4 perk from your Secret Society." },
     { "threshold": 150, "name": "Government Contacts", "description": "You gain +1 Tips before each scenario. This point may be saved or used for the upcoming scenario." },
     { "threshold": 175, "name": "Legendary", "description": "Your league earns +1 Experience. This point may be saved or used now. You earn an extra +1 XP each time you gain an additional 25 Reputation points." }
-  ]
+  ],
+  "optionalSettings": [
+    { "name": "deadAlive", "label": "Dead Alive", "description": "Place a casualty counter each time a character is knocked out. At end of each turn, roll 1d6 — on 4+, replace with a Level 1 Living Dead NPC. Characters knocked out by Reanimated enemies are permanently removed." },
+    { "name": "heartless", "label": "Heartless", "description": "When one of your characters goes down, you must discard or immediately knock them out." },
+    { "name": "roadWarriors", "label": "Road Warriors", "description": "Each league receives 5 Gear points as a one-time bonus for vehicles, vehicle modifications, and gun modifications only." },
+    { "name": "scavengeAndSurvive", "label": "Scavenge & Survive", "description": "Single-Shot rules apply. Characters holding a Plot Point ignore Single-Shot. Spend 1 resource point to exempt one character." },
+    { "name": "singleShot", "label": "Single-Shot", "description": "Each character capable of shooting or placing a Burst begins with one Loaded counter. Must remove counter to shoot/burst. May reload as an action." }
+  ],
+  "harrowingEscape": {
+    "fullRecovery": [
+      { "roll": "1-3", "name": "Bad News", "description": "You are delayed in the next scenario." },
+      { "roll": "4", "name": "Ripping Yarn", "description": "No effect." },
+      { "roll": "5", "name": "Orderly Retreat", "description": "League gains +1 Reputation." },
+      { "roll": "6", "name": "Helping Hand", "description": "+1 Tips to use for your next scenario." },
+      { "roll": "7", "name": "Barely a Scratch", "description": "+1 Gear to use for your next scenario." },
+      { "roll": "8", "name": "Dragged to Safety", "description": "+1 Backup to use for your next scenario." },
+      { "roll": "9", "name": "Convalescence", "description": "+1 Contacts to use for your next scenario." },
+      { "roll": "10", "name": "Heroic Escape", "description": "League gains +1 Resource (your choice)." }
+    ],
+    "criticalInjury": [
+      { "roll": "1-3", "name": "Bloody Mess", "description": "Your Recovery checks are impaired for the next scenario." },
+      { "roll": "4", "name": "Head Wound", "description": "Your Dodge and Cunning are impaired for the next scenario." },
+      { "roll": "5", "name": "Arm Wound", "description": "Your Shoot and Finesse are impaired for the next scenario." },
+      { "roll": "6", "name": "Leg Wound", "description": "Your Brawl and Might are impaired for the next scenario." },
+      { "roll": "7", "name": "Bloodied & Bruised", "description": "Your movement is impaired for the next scenario." },
+      { "roll": "8", "name": "Left Behind", "description": "You are delayed in the next scenario." },
+      { "roll": "9", "name": "Ran Away", "description": "League loses -1 Reputation." },
+      { "roll": "10", "name": "Good News", "description": "Roll on the Full Recovery table instead." }
+    ]
+  }
 }
