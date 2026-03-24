@@ -267,30 +267,53 @@
         // ==========================================
         const DataLoader = ({ onLoad }) => {
             const fileRef = useRef(null);
+            const [status, setStatus] = useState('loading'); // loading, manual
+
+            const cacheAndLoad = (jsonStr) => {
+                const data = JSON.parse(jsonStr);
+                try { localStorage.setItem(DATA_CACHE_KEY, jsonStr); }
+                catch (storageErr) { console.warn('Could not cache data:', storageErr); }
+                onLoad(data);
+            };
+
             const handleFile = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (ev) => {
-                    try {
-                        const data = JSON.parse(ev.target.result);
-                        try { localStorage.setItem('pulpAlley_dataCache', ev.target.result); }
-                        catch (storageErr) { console.warn('Could not cache data:', storageErr); }
-                        onLoad(data);
-                    } catch (err) { alert('Invalid JSON file'); }
+                    try { cacheAndLoad(ev.target.result); }
+                    catch (err) { alert('Invalid JSON file'); }
                 };
                 reader.readAsText(file);
             };
+
             useEffect(() => {
-                const cached = localStorage.getItem('pulpAlley_dataCache');
-                if (cached) { try { onLoad(JSON.parse(cached)); } catch(e) {} }
+                // 1. Try localStorage cache first
+                const cached = localStorage.getItem(DATA_CACHE_KEY);
+                if (cached) { try { onLoad(JSON.parse(cached)); return; } catch(e) {} }
+
+                // 2. Try auto-fetching PulpAlley_Data.json from same directory
+                fetch('PulpAlley_Data.json')
+                    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+                    .then(text => { try { cacheAndLoad(text); } catch(e) { setStatus('manual'); } })
+                    .catch(() => setStatus('manual'));
             }, []);
+
+            if (status === 'loading') return (
+                <div className="h-full flex items-center justify-center" style={{background:'var(--leather)'}}>
+                    <div className="text-center p-12" style={{color:'var(--paper)'}}>
+                        <h1 className="text-3xl font-bold brand-font mb-2" style={{color:'var(--crimson)'}}>PULP ALLEY</h1>
+                        <p className="typewriter text-sm">Loading data...</p>
+                    </div>
+                </div>
+            );
+
             return (
                 <div className="h-full flex items-center justify-center" style={{background:'var(--leather)'}}>
                     <div className="text-center p-12 rounded-lg" style={{background:'var(--paper)',border:'2px solid var(--border)'}}>
                         <h1 className="text-3xl font-bold brand-font mb-2" style={{color:'var(--crimson)'}}>PULP ALLEY</h1>
                         <h2 className="text-lg typewriter mb-6" style={{color:'var(--ink-light)'}}>LEAGUE FORGE</h2>
-                        <p className="typewriter mb-6 text-sm" style={{color:'var(--ink-faded)'}}>Load your PulpAlley_Data.json to begin</p>
+                        <p className="typewriter mb-6 text-sm" style={{color:'var(--ink-faded)'}}>Could not auto-load data. Select PulpAlley_Data.json manually:</p>
                         <input ref={fileRef} type="file" accept=".json" onChange={handleFile} className="hidden" />
                         <button onClick={() => fileRef.current.click()}
                             className="px-6 py-3 rounded typewriter text-lg cursor-pointer transition-opacity hover:opacity-80"
@@ -300,6 +323,293 @@
                     </div>
                 </div>
             );
+        };
+
+        // ==========================================
+        // 4. VALIDATION ENGINE
+        // ==========================================
+
+        const getTemplate = (gameData, type) => gameData.characterTemplates.find(t => t.type === type);
+
+        const getAllAbilities = (gameData) => [
+            ...gameData.abilities.level1,
+            ...gameData.abilities.level2,
+            ...gameData.abilities.level3,
+            ...gameData.abilities.level4,
+            ...(gameData.abilities.gang || []),
+        ];
+
+        const getAbilitiesForLevel = (gameData, maxLevel) => {
+            const all = [];
+            if (maxLevel >= 1) all.push(...gameData.abilities.level1);
+            if (maxLevel >= 2) all.push(...gameData.abilities.level2);
+            if (maxLevel >= 3) all.push(...gameData.abilities.level3);
+            if (maxLevel >= 4) all.push(...gameData.abilities.level4);
+            return all;
+        };
+
+        const getTotalSlots = (league, gameData) => {
+            let slots = 10;
+            // Commander ability adds +4 slots for L1/L2
+            league.characters.forEach(c => {
+                const allAbs = [...c.abilities, ...c.freeAbilities];
+                allAbs.forEach(aName => {
+                    const ability = getAllAbilities(gameData).find(a => a.name === aName);
+                    if (ability) ability.effects.forEach(eff => {
+                        if (eff.type === 'modifyRosterSlots') slots += eff.count;
+                    });
+                });
+            });
+            // Reputation perks that add slots
+            if (league.campaignState) {
+                const rep = league.campaignState.reputation || 0;
+                gameData.reputationTable.forEach(entry => {
+                    if (rep >= entry.threshold && entry.effect && entry.effect.type === 'modifyRosterSlots') {
+                        slots += entry.effect.count;
+                    }
+                });
+            }
+            // Mastermind: +6 extra slots for L1/L2
+            if (league.perks.includes('Mastermind')) slots += 6;
+            return slots;
+        };
+
+        const getUsedSlots = (league, gameData) => {
+            let used = 0;
+            league.characters.forEach(c => {
+                const tmpl = getTemplate(gameData, c.type);
+                if (tmpl) used += tmpl.rosterSlotCost;
+            });
+            league.perks.forEach(pName => {
+                const perk = gameData.perks.find(p => p.name === pName);
+                if (perk) used += perk.slotCost;
+            });
+            used += league.associates.length; // 1 slot each per rulebook p.27
+            return used;
+        };
+
+        const getAvailableSlots = (league, gameData) => getTotalSlots(league, gameData) - getUsedSlots(league, gameData);
+
+        const getMaxSidekicks = (league) => {
+            if (league.perks.includes('Company of Heroes')) return 2;
+            return 1;
+        };
+
+        const getMaxAssociates = (league) => {
+            let max = 2;
+            const rep = league.campaignState?.reputation || 0;
+            if (rep >= 50) max = 3;
+            if (rep >= 75) max = 4;
+            return max;
+        };
+
+        const validateAbilityForCharacter = (abilityName, character, gameData) => {
+            const errors = [];
+            const ability = getAllAbilities(gameData).find(a => a.name === abilityName);
+            if (!ability) {
+                // Check epic abilities too
+                const epicAb = (gameData.abilities.epic || []).find(a => a.name === abilityName);
+                if (!epicAb) return ['Ability not found'];
+            }
+            const ab = ability || (gameData.abilities.epic || []).find(a => a.name === abilityName);
+
+            // Level restriction
+            if (ab.level > character.level) errors.push(`Requires level ${ab.level}+`);
+
+            // No duplicates
+            if (character.abilities.includes(abilityName)) errors.push('Already selected');
+            if (character.freeAbilities.includes(abilityName)) errors.push('Already selected (free)');
+
+            // True Believer blocks all others
+            if (character.abilities.includes('True Believer') && abilityName !== 'True Believer')
+                errors.push('True Believer prevents other abilities');
+            if (abilityName === 'True Believer' && character.abilities.length > 0)
+                errors.push('True Believer must be the only ability');
+            if (abilityName === 'True Believer' && character.type === 'leader')
+                errors.push('Not available to Leaders');
+
+            // Check no-dice conflicts: max 1 ability reducing same skill to no-dice
+            const existingNoDice = new Set();
+            [...character.abilities, ...character.freeAbilities].forEach(aName => {
+                const a = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(x => x.name === aName);
+                if (a) a.effects.filter(e => e.type === 'setNoDice').forEach(e => e.target.forEach(s => existingNoDice.add(s)));
+            });
+            const newNoDice = ab.effects.filter(e => e.type === 'setNoDice').flatMap(e => e.target);
+            newNoDice.forEach(skill => {
+                if (existingNoDice.has(skill)) errors.push(`Already has ability reducing ${skill} to no-dice`);
+            });
+
+            // Check no-action conflicts
+            const hasPreventAction = [...character.abilities, ...character.freeAbilities].some(aName => {
+                const a = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(x => x.name === aName);
+                return a && a.effects.some(e => e.type === 'preventAction');
+            });
+            if (hasPreventAction && ab.effects.some(e => e.type === 'preventAction'))
+                errors.push('Already has ability preventing actions');
+
+            // Incompatibility checks
+            if (ab.incompatibleWith && ab.incompatibleWith.length > 0) {
+                if (ab.incompatibleWith.includes('all') && character.abilities.length > 0)
+                    errors.push('Incompatible with all other abilities');
+                ab.incompatibleWith.filter(x => x !== 'all' && x !== 'preventAction' && x !== 'setNoDice').forEach(inc => {
+                    if (character.abilities.includes(inc)) errors.push(`Incompatible with ${inc}`);
+                });
+                if (ab.incompatibleWith.includes('preventAction') && hasPreventAction)
+                    errors.push('Incompatible with no-action abilities');
+                if (ab.incompatibleWith.includes('setNoDice') && existingNoDice.size > 0)
+                    errors.push('Incompatible with no-dice abilities');
+            }
+
+            return errors;
+        };
+
+        const validateLeague = (league, gameData) => {
+            const errors = [];
+            const totalSlots = getTotalSlots(league, gameData);
+            const usedSlots = getUsedSlots(league, gameData);
+            if (usedSlots > totalSlots) errors.push(`Over slot limit: ${usedSlots}/${totalSlots}`);
+
+            const leaders = league.characters.filter(c => c.type === 'leader');
+            const sidekicks = league.characters.filter(c => c.type === 'sidekick');
+            const hasMastermind = league.perks.includes('Mastermind');
+            const hasLoL = league.perks.includes('League of Legends');
+
+            if (!hasMastermind && !hasLoL && leaders.length !== 1) errors.push('League must have exactly 1 Leader');
+            if (hasMastermind && leaders.length > 0) errors.push('Mastermind: league has no Leader character');
+            if (hasLoL && leaders.length > 0) errors.push('League of Legends: no Leader character');
+
+            if (sidekicks.length > getMaxSidekicks(league)) errors.push(`Max ${getMaxSidekicks(league)} Sidekick(s)`);
+            if (league.associates.length > getMaxAssociates(league)) errors.push(`Max ${getMaxAssociates(league)} Associates`);
+
+            if (league.perks.includes('Duo')) {
+                const nonLeaderSidekick = league.characters.filter(c => c.type !== 'leader' && c.type !== 'sidekick');
+                if (nonLeaderSidekick.length > 0) errors.push('Duo: only Leader and Sidekick allowed');
+            }
+            if (league.perks.includes('Companions') && sidekicks.length > 0)
+                errors.push('Companions: cannot include a Sidekick');
+
+            return errors;
+        };
+
+        // ==========================================
+        // 5. SKILL COMPUTATION
+        // ==========================================
+
+        const shiftDiceType = (diceType, direction) => {
+            const idx = DICE_ORDER[diceType];
+            if (idx === undefined) return diceType;
+            const newIdx = idx + direction;
+            if (newIdx < 0) return 'no-dice';
+            if (newIdx >= DICE_TYPES.length) return DICE_TYPES[DICE_TYPES.length - 1];
+            return DICE_TYPES[newIdx];
+        };
+
+        const resolveTargets = (target, character, abilityName) => {
+            if (typeof target === 'string') {
+                if (target.startsWith('pick')) return character.abilityChoices[abilityName] || [];
+                return [target];
+            }
+            if (Array.isArray(target)) return target;
+            return [];
+        };
+
+        const applyAbilityEffects = (skills, abilityNames, character, gameData) => {
+            const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
+            abilityNames.forEach(abilityName => {
+                const ability = allAbPool.find(a => a.name === abilityName);
+                if (!ability) return;
+                ability.effects.forEach(effect => {
+                    if (effect.type === 'addDice') {
+                        resolveTargets(effect.target, character, abilityName).forEach(skill => {
+                            if (skills[skill]) {
+                                skills[skill].bonusCount += effect.count;
+                                skills[skill].annotations.push(`+${effect.count} from ${abilityName}`);
+                            }
+                        });
+                    }
+                    if (effect.type === 'setNoDice') {
+                        effect.target.forEach(skill => {
+                            if (skills[skill]) {
+                                skills[skill].noDice = true;
+                                skills[skill].annotations.push(`No-dice from ${abilityName}`);
+                            }
+                        });
+                    }
+                    if (effect.type === 'shiftUp') {
+                        effect.target.forEach(skill => {
+                            if (skills[skill]) {
+                                skills[skill].diceTypeShift += 1;
+                                skills[skill].annotations.push(`Shift up from ${abilityName}`);
+                            }
+                        });
+                    }
+                    if (effect.type === 'shiftDown') {
+                        effect.target.forEach(skill => {
+                            if (skills[skill]) {
+                                skills[skill].diceTypeShift -= 1;
+                                skills[skill].annotations.push(`Shift down from ${abilityName}`);
+                            }
+                        });
+                    }
+                });
+            });
+        };
+
+        const finalizeSkills = (skills) => {
+            SKILLS.forEach(skill => {
+                const s = skills[skill];
+                if (s.noDice) {
+                    s.finalCount = 0; s.finalDiceType = 'no-dice'; s.display = '\u2014';
+                } else {
+                    s.finalCount = s.baseCount + s.bonusCount;
+                    const shifted = shiftDiceType(s.baseDiceType, s.diceTypeShift);
+                    if (shifted === 'no-dice') {
+                        s.finalDiceType = 'no-dice'; s.finalCount = 0; s.display = '\u2014';
+                    } else {
+                        s.finalDiceType = shifted;
+                        s.display = `${s.finalCount}${s.finalDiceType}`;
+                    }
+                }
+            });
+        };
+
+        const computeCharacterSkills = (character, gameData) => {
+            const template = getTemplate(gameData, character.type);
+            if (!template) return null;
+
+            if (character.type === 'gang') return computeGangSkills(character, gameData);
+
+            const skills = {};
+            SKILLS.forEach(skill => {
+                const assignment = character.skillAssignments[skill];
+                skills[skill] = {
+                    baseCount: assignment?.count || 0,
+                    baseDiceType: assignment?.diceType || 'd6',
+                    bonusCount: 0, diceTypeShift: 0, noDice: false, annotations: [],
+                };
+            });
+
+            applyAbilityEffects(skills, [...character.abilities, ...character.freeAbilities], character, gameData);
+            finalizeSkills(skills);
+            return skills;
+        };
+
+        const computeGangSkills = (character, gameData) => {
+            const models = character.gangModels || 5;
+            const combatDice = Math.ceil(models / 2);
+            const skills = {};
+            SKILLS.forEach(skill => {
+                const isCombat = ['Brawl', 'Shoot', 'Might'].includes(skill);
+                skills[skill] = {
+                    baseCount: isCombat ? combatDice : 1,
+                    baseDiceType: 'd6',
+                    bonusCount: 0, diceTypeShift: 0, noDice: false, annotations: [],
+                };
+            });
+
+            applyAbilityEffects(skills, [...character.abilities, ...character.freeAbilities], character, gameData);
+            finalizeSkills(skills);
+            return skills;
         };
 
         // ==========================================
