@@ -1123,6 +1123,21 @@
         // 5f. CHARACTER EDITOR — ABILITY PICKER
         // ==========================================
 
+        // Standalone flavour name input — uses local state to avoid focus loss on parent re-render
+        const FlavourInput = ({ value, onChange }) => {
+            const [local, setLocal] = useState(value || '');
+            useEffect(() => { setLocal(value || ''); }, [value]);
+            return (
+                <input value={local}
+                    onChange={e => setLocal(e.target.value)}
+                    onBlur={() => { if (local !== (value || '')) onChange(local); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.target.blur(); } }}
+                    placeholder="Flavour name (optional)..."
+                    className="w-full text-xs typewriter px-2 py-1 rounded outline-none"
+                    style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}} />
+            );
+        };
+
         const AbilityPicker = ({ character, gameData, onUpdate }) => {
             const [showBrowser, setShowBrowser] = useState(false);
             const [showEpicBrowser, setShowEpicBrowser] = useState(false);
@@ -1263,10 +1278,7 @@
                         {/* Flavour name input */}
                         {!isFree && (
                             <div className="mt-2">
-                                <input value={character.abilityFlavourNames[abilityName] || ''} onChange={e => setFlavourName(abilityName, e.target.value)}
-                                    placeholder="Flavour name (optional)..."
-                                    className="w-full text-xs typewriter px-2 py-1 rounded outline-none"
-                                    style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}} />
+                                <FlavourInput value={character.abilityFlavourNames[abilityName] || ''} onChange={v => setFlavourName(abilityName, v)} />
                             </div>
                         )}
 
