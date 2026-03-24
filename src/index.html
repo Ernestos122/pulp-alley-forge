@@ -160,6 +160,8 @@
             weapon: null,
             gangModels: type === 'gang' ? 5 : null,
             extraAbilitySlots: type === 'epic' ? 0 : undefined,
+            specialistsReduced: [],
+            specialistsRaised: null,
             ...(template || {}),
         });
 
@@ -396,9 +398,16 @@
         const getUsedSlots = (league, gameData) => {
             let used = 0;
             const hasLoL = league.perks.includes('League of Legends');
+            const hasMastermind = league.perks.includes('Mastermind');
+            let mastermindFreeSidekickUsed = false;
             league.characters.forEach(c => {
                 // League of Legends: 4 sidekicks are included in the perk cost (free)
                 if (hasLoL && c.type === 'sidekick') return;
+                // Mastermind: first sidekick is free (0 slots)
+                if (hasMastermind && c.type === 'sidekick' && !mastermindFreeSidekickUsed) {
+                    mastermindFreeSidekickUsed = true;
+                    return;
+                }
                 const tmpl = getTemplate(gameData, c.type);
                 if (tmpl) used += tmpl.rosterSlotCost;
                 // Epic characters can spend extra roster slots for additional abilities
@@ -513,6 +522,26 @@
             if (league.perks.includes('Companions') && sidekicks.length > 0)
                 errors.push('Companions: cannot include a Sidekick');
 
+            // Mastermind: only 1 free sidekick + L1/L2 characters
+            if (hasMastermind) {
+                const nonL1L2SK = league.characters.filter(c => c.type !== 'sidekick' && c.type !== 'ally' && c.type !== 'follower' && c.type !== 'gang');
+                if (nonL1L2SK.length > 0) errors.push('Mastermind: only Sidekick (1 free) and L1/L2 characters allowed');
+                if (sidekicks.length > 1) errors.push('Mastermind: max 1 free Sidekick');
+            }
+
+            // Specialists: Leader must not have no-dice skills after reduction
+            if (league.perks.includes('Specialists')) {
+                const leaderChar = leaders[0];
+                if (leaderChar && leaderChar.specialistsReduced) {
+                    leaderChar.specialistsReduced.forEach(skill => {
+                        const assignment = leaderChar.skillAssignments?.[skill];
+                        if (assignment?.diceType === 'd6') {
+                            errors.push(`Specialists: Leader's ${skill} would become no-dice (currently d6)`);
+                        }
+                    });
+                }
+            }
+
             return errors;
         };
 
@@ -607,7 +636,7 @@
             });
         };
 
-        const computeCharacterSkills = (character, gameData, genre, optionalRules) => {
+        const computeCharacterSkills = (character, gameData, genre, optionalRules, league) => {
             const template = getTemplate(gameData, character.type);
             if (!template) return null;
 
@@ -624,6 +653,26 @@
             });
 
             applyAbilityEffects(skills, [...character.abilities, ...character.freeAbilities], character, gameData);
+
+            // Specialists perk: apply dice-type shifts after ability effects
+            if (league && league.perks && league.perks.includes('Specialists')) {
+                if (character.type === 'leader' && character.specialistsReduced && character.specialistsReduced.length > 0) {
+                    character.specialistsReduced.forEach(skill => {
+                        if (skills[skill]) {
+                            skills[skill].diceTypeShift -= 1;
+                            skills[skill].annotations.push('Reduced (Specialists)');
+                        }
+                    });
+                }
+                if (character.type !== 'leader' && character.specialistsRaised) {
+                    const skill = character.specialistsRaised;
+                    if (skills[skill]) {
+                        skills[skill].diceTypeShift += 1;
+                        skills[skill].annotations.push('Raised (Specialists)');
+                    }
+                }
+            }
+
             finalizeSkills(skills, genre, optionalRules);
             return skills;
         };
@@ -771,7 +820,7 @@
                                     <div className="brand-font text-sm font-bold truncate" style={{color:'var(--ink)', maxWidth:'130px'}}>{c.name || 'Unnamed'}</div>
                                 </div>
                             </div>
-                            {tmpl && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{tmpl.health}</span>}
+                            {tmpl && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{(league.perks.includes('Duo') && c.type === 'sidekick') ? 'd10' : tmpl.health}</span>}
                         </div>
                     </div>
                 );
@@ -891,11 +940,20 @@
             const charCount = league.characters.length;
             const atFivePlusCap = fivePlusMode && charCount >= 3;
 
+            // Mastermind: first sidekick is free, then only L1/L2 characters
+            const mastermindFreeSidekickAvail = hasMastermind && sidekickCount === 0;
+            const mastermindSidekickCost = mastermindFreeSidekickAvail ? 0 : 3;
+
             // League of Legends: only Sidekicks (up to 4, included in perk cost = free)
             const options = hasLoL ? [
                 { type: 'sidekick', label: 'Sidekick', cost: 0, desc: 'Included in League of Legends perk. One will fill the Leader role.', disabled: sidekickCount >= 4, reason: sidekickCount >= 4 ? 'Max 4 Sidekicks (League of Legends)' : '' },
+            ] : hasMastermind ? [
+                { type: 'sidekick', label: 'Sidekick', cost: mastermindSidekickCost, desc: mastermindFreeSidekickAvail ? 'Free Sidekick to fill the Leader role (Mastermind).' : '', disabled: sidekickCount >= 1 || (!mastermindFreeSidekickAvail && available < 3), reason: sidekickCount >= 1 ? 'Mastermind: max 1 free Sidekick' : 'Not enough slots' },
+                { type: 'ally', label: 'Ally', cost: 2, desc: 'Mastermind: +6 slots for L1/L2 characters.', disabled: available < 2, reason: 'Not enough slots' },
+                { type: 'follower', label: 'Follower', cost: 1, desc: 'Mastermind: +6 slots for L1/L2 characters.', disabled: available < 1, reason: 'Not enough slots' },
+                { type: 'gang', label: 'Gang', cost: 2, desc: 'Mastermind: +6 slots for L1/L2 characters.', disabled: available < 2, reason: 'Not enough slots' },
             ] : [
-                { type: 'leader', label: 'Leader', cost: 0, desc: '', disabled: hasLeader || hasMastermind, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : '' },
+                { type: 'leader', label: 'Leader', cost: 0, desc: '', disabled: hasLeader, reason: hasLeader ? 'Already have a Leader' : '' },
                 { type: 'sidekick', label: 'Sidekick', cost: 3, desc: '', disabled: sidekickCount >= maxSK || available < 3, reason: sidekickCount >= maxSK ? `Max ${maxSK} Sidekick(s)` : 'Not enough slots' },
                 { type: 'ally', label: 'Ally', cost: 2, desc: '', disabled: available < 2, reason: 'Not enough slots' },
                 { type: 'follower', label: 'Follower', cost: 1, desc: '', disabled: available < 1, reason: 'Not enough slots' },
@@ -968,7 +1026,7 @@
 
             // Gang has special rules — no skill assignment
             if (isGang) {
-                const skills = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules);
+                const skills = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules, league);
                 if (!skills) return null;
                 return (
                     <div className="mb-6">
@@ -1059,7 +1117,7 @@
             };
 
             // Compute final skills for display
-            const computed = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules);
+            const computed = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules, league);
 
             // Pool summary
             const countPoolSummary = countOptions.length > 0
@@ -1172,7 +1230,7 @@
             );
         };
 
-        const AbilityPicker = ({ character, gameData, onUpdate }) => {
+        const AbilityPicker = ({ character, gameData, onUpdate, league }) => {
             const [showBrowser, setShowBrowser] = useState(false);
             const [showEpicBrowser, setShowEpicBrowser] = useState(false);
             const [searchTerm, setSearchTerm] = useState('');
@@ -1184,7 +1242,11 @@
             const maxLevel = template.maxAbilityLevel;
             // For epic: regular ability slots = abilitySlots (3) + extraAbilitySlots
             const extraSlots = isEpic ? (character.extraAbilitySlots || 0) : 0;
-            const maxSlots = template.abilitySlots + extraSlots;
+            // Duo: Sidekick gets +1 ability slot
+            const duoBonus = (league?.perks?.includes('Duo') && character.type === 'sidekick') ? 1 : 0;
+            // Companions: each Ally gets +1 ability slot
+            const companionsBonus = (league?.perks?.includes('Companions') && character.type === 'ally') ? 1 : 0;
+            const maxSlots = template.abilitySlots + extraSlots + duoBonus + companionsBonus;
             // For epic: epic ability slots come from template.epicAbilitySlots (1)
             const maxEpicSlots = isEpic ? (template.epicAbilitySlots || 1) : 0;
 
@@ -1734,7 +1796,7 @@
                                 <span className="typewriter text-xs uppercase px-2 py-0.5 rounded" style={{background: LEVEL_COLORS[character.type], color:'var(--paper)'}}>
                                     {LEVEL_LABELS[character.type]}
                                 </span>
-                                {template && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Health: {template.health}</span>}
+                                {template && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Health: {(league.perks.includes('Duo') && character.type === 'sidekick') ? 'd10' : template.health}</span>}
                                 {character.type === 'gang' && (
                                     <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Models: {character.gangModels || 5}</span>
                                 )}
@@ -1826,6 +1888,80 @@
                         </div>
                     )}
 
+                    {/* Specialists Perk UI */}
+                    {league.perks.includes('Specialists') && character.type === 'leader' && (
+                        <div className="mb-4 p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                            <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Specialists — Reduce 3 Skills</div>
+                            <div className="typewriter text-xs mb-2" style={{color:'var(--ink-faded)'}}>
+                                Select 3 of your Leader's skills to reduce by one dice-type. Leader cannot have any no-dice skills after reduction.
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                                {SKILLS.map(skill => {
+                                    const selected = (character.specialistsReduced || []).includes(skill);
+                                    const currentReduced = character.specialistsReduced || [];
+                                    const canSelect = selected || currentReduced.length < 3;
+                                    // Warn if reducing a d6 skill would create no-dice
+                                    const assignment = character.skillAssignments?.[skill];
+                                    const wouldBeNoDice = assignment?.diceType === 'd6';
+                                    return (
+                                        <button key={skill}
+                                            disabled={!canSelect && !selected}
+                                            onClick={() => {
+                                                if (selected) {
+                                                    onUpdate({...character, specialistsReduced: currentReduced.filter(s => s !== skill)});
+                                                } else if (canSelect) {
+                                                    if (wouldBeNoDice) {
+                                                        if (!confirm(`Warning: Reducing ${skill} (d6) will result in no-dice. Leader cannot have no-dice skills. Continue anyway?`)) return;
+                                                    }
+                                                    onUpdate({...character, specialistsReduced: [...currentReduced, skill]});
+                                                }
+                                            }}
+                                            className="px-3 py-1 rounded typewriter text-xs cursor-pointer transition-all disabled:opacity-30"
+                                            style={{
+                                                background: selected ? 'var(--crimson)' : 'var(--paper)',
+                                                color: selected ? 'var(--paper)' : (wouldBeNoDice ? 'var(--crimson)' : 'var(--ink)'),
+                                                border: `1px solid ${selected ? 'var(--crimson)' : 'var(--border)'}`,
+                                            }}>
+                                            {skill} {selected ? '(reducing)' : ''} {wouldBeNoDice && !selected ? '(!)' : ''}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {(character.specialistsReduced || []).length < 3 && (
+                                <div className="typewriter text-xs mt-2" style={{color:'var(--crimson)'}}>
+                                    Select {3 - (character.specialistsReduced || []).length} more skill{3 - (character.specialistsReduced || []).length !== 1 ? 's' : ''} to reduce.
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {league.perks.includes('Specialists') && character.type !== 'leader' && (
+                        <div className="mb-4 p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                            <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Specialists — Raise 1 Skill</div>
+                            <div className="typewriter text-xs mb-2" style={{color:'var(--ink-faded)'}}>
+                                Select 1 skill to raise by one dice-type.
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                                {SKILLS.map(skill => {
+                                    const selected = character.specialistsRaised === skill;
+                                    return (
+                                        <button key={skill}
+                                            onClick={() => {
+                                                onUpdate({...character, specialistsRaised: selected ? null : skill});
+                                            }}
+                                            className="px-3 py-1 rounded typewriter text-xs cursor-pointer transition-all"
+                                            style={{
+                                                background: selected ? '#2a6e5a' : 'var(--paper)',
+                                                color: selected ? 'var(--paper)' : 'var(--ink)',
+                                                border: `1px solid ${selected ? '#2a6e5a' : 'var(--border)'}`,
+                                            }}>
+                                            {skill} {selected ? '(raising)' : ''}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Skill Assignment */}
                     <SkillAssignmentGrid character={character} gameData={gameData} onUpdate={onUpdate} league={league} />
 
@@ -1833,7 +1969,7 @@
                     <WeaponPicker character={character} gameData={gameData} onUpdate={onUpdate} weaponsEnabled={league?.optionalRules?.weapons} />
 
                     {/* Ability Picker */}
-                    <AbilityPicker character={character} gameData={gameData} onUpdate={onUpdate} />
+                    <AbilityPicker character={character} gameData={gameData} onUpdate={onUpdate} league={league} />
                 </div>
             );
         };
@@ -1859,10 +1995,19 @@
             const togglePerk = (perkName) => {
                 const perk = perks.find(p => p.name === perkName);
                 if (!perk) return;
+                const isRestructuring = PERK_RESTRUCTURING.includes(perkName);
                 if (league.perks.includes(perkName)) {
+                    // Deselecting a restructuring perk: warn
+                    if (isRestructuring) {
+                        if (!confirm('Removing this perk may make your roster invalid. Continue?')) return;
+                    }
                     updateLeague(l => ({ ...l, perks: l.perks.filter(p => p !== perkName) }));
                 } else {
                     if (perk.slotCost > remaining) return;
+                    // Selecting a restructuring perk: warn if incompatible characters exist
+                    if (isRestructuring && league.characters.length > 0) {
+                        if (!confirm('This perk restricts your roster. Incompatible characters will need to be removed.')) return;
+                    }
                     updateLeague(l => ({ ...l, perks: [...l.perks, perkName] }));
                 }
             };
@@ -2627,7 +2772,7 @@
                     {/* Character Cards */}
                     {league.characters.map(character => {
                         const template = getTemplate(gameData, character.type);
-                        const skills = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules);
+                        const skills = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules, league);
                         return (
                             <div key={character.id} className="print-card" style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', marginBottom:'16px', padding:'12px', background:'#fff'}}>
                                 <div style={{display:'flex', alignItems:'flex-start', gap:'12px', marginBottom:'8px'}}>
@@ -2641,7 +2786,7 @@
                                                 {LEVEL_LABELS[character.type]}{league.actingLeaderId === character.id ? ' (Acting Leader)' : ''}
                                             </span>
                                         </div>
-                                        {template && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Health: {template.health}</div>}
+                                        {template && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Health: {(league.perks.includes('Duo') && character.type === 'sidekick') ? 'd10' : template.health}</div>}
                                         {character.type === 'gang' && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Models: {character.gangModels || 5}</div>}
                                         {character.weapon && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Weapon: {character.weapon}</div>}
                                     </div>
@@ -2894,7 +3039,11 @@
             }, [updateLeague]);
 
             const deleteCharacter = useCallback((charId) => {
-                updateLeague(l => ({ ...l, characters: l.characters.filter(c => c.id !== charId) }));
+                updateLeague(l => ({
+                    ...l,
+                    characters: l.characters.filter(c => c.id !== charId),
+                    actingLeaderId: l.actingLeaderId === charId ? null : l.actingLeaderId,
+                }));
                 setSelectedCharId(prev => prev === charId ? null : prev);
                 setActiveView(prev => prev === 'character' ? null : prev);
             }, [updateLeague]);
