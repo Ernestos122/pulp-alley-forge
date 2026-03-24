@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulp Alley League Forge</title>
+
+    <!-- FIX: Disable AMD loader to force UMD scripts to use window globals -->
+    <script>window.define = null;</script>
+
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Load React and ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Load Babel for JSX processing -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts: Pulp Dossier Style -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Playfair+Display:wght@400;700;900&family=Roboto+Slab:wght@400;700&display=swap');
+
+        :root {
+            --paper: #d4c5a9;
+            --paper-dark: #c4b48e;
+            --ink: #2a1f0e;
+            --ink-light: #5a4a2e;
+            --ink-faded: #7a6a4e;
+            --leather: #3b2f1e;
+            --crimson: #8b1a1a;
+            --border: #a89060;
+        }
+
+        body { font-family: 'Roboto Slab', serif; background: var(--leather); color: var(--ink); }
+        h1, h2, h3, .brand-font { font-family: 'Playfair Display', serif; }
+        .mono-font, .typewriter { font-family: 'Special Elite', cursive; }
+
+        /* Subtle paper texture via CSS gradient */
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(139,115,85,0.03) 2px, rgba(139,115,85,0.03) 4px);
+        }
+
+        /* Character level badge colors */
+        .badge-leader { color: var(--crimson); }
+        .badge-sidekick { color: #2a6e5a; }
+        .badge-ally { color: #8b6914; }
+        .badge-follower { color: var(--ink-faded); }
+        .badge-gang { color: var(--ink-light); }
+
+        /* Print overrides */
+        @media print {
+            @page { margin: 0.5cm; size: auto; }
+            html, body { height: auto !important; overflow: visible !important; background: white !important; margin: 0 !important; padding: 0 !important; color: black !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; position: static !important; width: 100% !important; height: auto !important; visibility: visible !important; }
+            .print-only * { visibility: visible !important; }
+            .print-card { break-inside: avoid; border: 2px solid #000; border-radius: 4px; margin-bottom: 16px; padding: 12px; background: #fff; page-break-inside: avoid; }
+        }
+        .print-only { display: none; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--leather); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--ink-faded); }
+
+        /* Toast Animation */
+        @keyframes slideIn {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .toast { animation: slideIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden">
+    <div id="root" class="h-full"></div>
+
+    <script type="text/babel">
+        // ==========================================
+        // 1. ICONS & CONSTANTS
+        // ==========================================
+        const { useState, useRef, useEffect, useCallback } = React;
+
+        const createIcon = (path) => ({ size = 24, className = "", strokeWidth = 2, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth={strokeWidth}
+                strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {path}
+            </svg>
+        );
+
+        const Icons = {
+            Plus: createIcon(<><path d="M5 12h14"/><path d="M12 5v14"/></>),
+            Trash2: createIcon(<><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></>),
+            Save: createIcon(<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>),
+            Printer: createIcon(<><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></>),
+            Upload: createIcon(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></>),
+            Download: createIcon(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></>),
+            X: createIcon(<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>),
+            Edit2: createIcon(<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>),
+            Search: createIcon(<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>),
+            AlertTriangle: createIcon(<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></>),
+            Image: createIcon(<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></>),
+            Users: createIcon(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>),
+            ChevronDown: createIcon(<path d="m6 9 6 6 6-6"/>),
+            ArrowLeft: createIcon(<><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></>),
+            FileText: createIcon(<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></>),
+        };
+
+        const SKILLS = ['Brawl', 'Shoot', 'Dodge', 'Might', 'Finesse', 'Cunning'];
+        const DICE_TYPES = ['d6', 'd8', 'd10', 'd12'];
+        const DICE_ORDER = { 'd6': 0, 'd8': 1, 'd10': 2, 'd12': 3 };
+
+        const LEVEL_COLORS = {
+            leader: 'var(--crimson)',
+            sidekick: '#2a6e5a',
+            ally: '#8b6914',
+            follower: 'var(--ink-faded)',
+            gang: 'var(--ink-light)',
+            epic: 'var(--crimson)',
+        };
+
+        const LEVEL_LABELS = {
+            leader: 'Leader', sidekick: 'Sidekick', ally: 'Ally',
+            follower: 'Follower', gang: 'Gang', epic: 'Epic',
+        };
+
+        // ==========================================
+        // 2. DATA & PERSISTENCE
+        // ==========================================
+
+        // UUID generator
+        const generateUUID = () => {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        };
+
+        // Empty factories
+        const EMPTY_CHARACTER = (type, template) => ({
+            id: generateUUID(),
+            name: '',
+            type,
+            level: template?.level || {leader:4,sidekick:3,ally:2,follower:1,gang:2,epic:4}[type] || 1,
+            image: null,
+            skillAssignments: Object.fromEntries(
+                ['Brawl','Shoot','Dodge','Might','Finesse','Cunning'].map(s => [s, {count: null, diceType: null}])
+            ),
+            abilities: [],
+            abilityFlavourNames: {},
+            abilityChoices: {},
+            freeAbilities: [],
+            gangModels: type === 'gang' ? 5 : null,
+            ...(template || {}),
+        });
+
+        const EMPTY_ASSOCIATE = () => ({
+            id: generateUUID(),
+            name: '',
+            abilities: [],
+        });
+
+        const EMPTY_LEAGUE = () => ({
+            id: generateUUID(),
+            name: 'New League',
+            characters: [],
+            perks: [],
+            associates: [],
+            campaignState: {
+                reputation: 0,
+                xp: 0,
+                resources: { tips: 0, backup: 0, gear: 0, contacts: 0 },
+                secretSociety: null,
+                secretSocietyPerks: [],
+            },
+            genre: null,
+            optionalRules: { weapons: false, harrowing: false, supers: false },
+        });
+
+        // LocalStorage helpers
+        const LEAGUE_INDEX_KEY = 'pulpAlley_leagueIndex';
+        const LEAGUE_PREFIX = 'pulpAlley_league_';
+        const DATA_CACHE_KEY = 'pulpAlley_dataCache';
+
+        const loadLeagueIndex = () => {
+            try { return JSON.parse(localStorage.getItem(LEAGUE_INDEX_KEY)) || []; }
+            catch { return []; }
+        };
+
+        const saveLeagueIndex = (index) => {
+            try { localStorage.setItem(LEAGUE_INDEX_KEY, JSON.stringify(index)); }
+            catch (e) { console.warn('Could not save league index:', e); }
+        };
+
+        const loadLeague = (id) => {
+            try { return JSON.parse(localStorage.getItem(LEAGUE_PREFIX + id)); }
+            catch { return null; }
+        };
+
+        const saveLeague = (league) => {
+            try {
+                localStorage.setItem(LEAGUE_PREFIX + league.id, JSON.stringify(league));
+                const index = loadLeagueIndex();
+                const existing = index.findIndex(e => e.id === league.id);
+                const entry = { id: league.id, name: league.name, lastModified: Date.now() };
+                if (existing >= 0) index[existing] = entry;
+                else index.push(entry);
+                saveLeagueIndex(index);
+                return true;
+            } catch (e) {
+                console.warn('Could not save league:', e);
+                return false;
+            }
+        };
+
+        const deleteLeague = (id) => {
+            try { localStorage.removeItem(LEAGUE_PREFIX + id); } catch {}
+            const index = loadLeagueIndex().filter(e => e.id !== id);
+            saveLeagueIndex(index);
+        };
+
+        // Export/Import helpers
+        const exportLeagueJSON = (league) => {
+            const blob = new Blob([JSON.stringify(league, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${league.name || 'league'}_league.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        const importLeagueJSON = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => { try { resolve(JSON.parse(e.target.result)); } catch { reject(new Error('Invalid JSON')); } };
+            reader.onerror = () => reject(new Error('File read error'));
+            reader.readAsText(file);
+        });
+
+        const resizeImage = (file, maxSize = 128) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+                    const w = Math.round(img.width * scale);
+                    const h = Math.round(img.height * scale);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.onerror = () => reject(new Error('Image load error'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('File read error'));
+            reader.readAsDataURL(file);
+        });
+
+        // ==========================================
+        // 3. DATA LOADER COMPONENT
+        // ==========================================
+        const DataLoader = ({ onLoad }) => {
+            const fileRef = useRef(null);
+            const [status, setStatus] = useState('loading'); // loading, manual
+
+            const cacheAndLoad = (jsonStr) => {
+                const data = JSON.parse(jsonStr);
+                try { localStorage.setItem(DATA_CACHE_KEY, jsonStr); }
+                catch (storageErr) { console.warn('Could not cache data:', storageErr); }
+                onLoad(data);
+            };
+
+            const handleFile = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try { cacheAndLoad(ev.target.result); }
+                    catch (err) { alert('Invalid JSON file'); }
+                };
+                reader.readAsText(file);
+            };
+
+            useEffect(() => {
+                // 1. Try localStorage cache first
+                const cached = localStorage.getItem(DATA_CACHE_KEY);
+                if (cached) { try { onLoad(JSON.parse(cached)); return; } catch(e) {} }
+
+                // 2. Try auto-fetching PulpAlley_Data.json from same directory
+                fetch('PulpAlley_Data.json')
+                    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+                    .then(text => { try { cacheAndLoad(text); } catch(e) { setStatus('manual'); } })
+                    .catch(() => setStatus('manual'));
+            }, []);
+
+            if (status === 'loading') return (
+                <div className="h-full flex items-center justify-center" style={{background:'var(--leather)'}}>
+                    <div className="text-center p-12" style={{color:'var(--paper)'}}>
+                        <h1 className="text-3xl font-bold brand-font mb-2" style={{color:'var(--crimson)'}}>PULP ALLEY</h1>
+                        <p className="typewriter text-sm">Loading data...</p>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="h-full flex items-center justify-center" style={{background:'var(--leather)'}}>
+                    <div className="text-center p-12 rounded-lg" style={{background:'var(--paper)',border:'2px solid var(--border)'}}>
+                        <h1 className="text-3xl font-bold brand-font mb-2" style={{color:'var(--crimson)'}}>PULP ALLEY</h1>
+                        <h2 className="text-lg typewriter mb-6" style={{color:'var(--ink-light)'}}>LEAGUE FORGE</h2>
+                        <p className="typewriter mb-6 text-sm" style={{color:'var(--ink-faded)'}}>Could not auto-load data. Select PulpAlley_Data.json manually:</p>
+                        <input ref={fileRef} type="file" accept=".json" onChange={handleFile} className="hidden" />
+                        <button onClick={() => fileRef.current.click()}
+                            className="px-6 py-3 rounded typewriter text-lg cursor-pointer transition-opacity hover:opacity-80"
+                            style={{background:'var(--crimson)',color:'var(--paper)',border:'none'}}>
+                            Load Data File
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 4. VALIDATION ENGINE
+        // ==========================================
+
+        const getTemplate = (gameData, type) => gameData.characterTemplates.find(t => t.type === type);
+
+        const getAllAbilities = (gameData) => [
+            ...gameData.abilities.level1,
+            ...gameData.abilities.level2,
+            ...gameData.abilities.level3,
+            ...gameData.abilities.level4,
+            ...(gameData.abilities.gang || []),
+        ];
+
+        const getAbilitiesForLevel = (gameData, maxLevel) => {
+            const all = [];
+            if (maxLevel >= 1) all.push(...gameData.abilities.level1);
+            if (maxLevel >= 2) all.push(...gameData.abilities.level2);
+            if (maxLevel >= 3) all.push(...gameData.abilities.level3);
+            if (maxLevel >= 4) all.push(...gameData.abilities.level4);
+            return all;
+        };
+
+        const getTotalSlots = (league, gameData) => {
+            let slots = 10;
+            // Commander ability adds +4 slots for L1/L2
+            league.characters.forEach(c => {
+                const allAbs = [...c.abilities, ...c.freeAbilities];
+                allAbs.forEach(aName => {
+                    const ability = getAllAbilities(gameData).find(a => a.name === aName);
+                    if (ability) ability.effects.forEach(eff => {
+                        if (eff.type === 'modifyRosterSlots') slots += eff.count;
+                    });
+                });
+            });
+            // Reputation perks that add slots
+            if (league.campaignState) {
+                const rep = league.campaignState.reputation || 0;
+                gameData.reputationTable.forEach(entry => {
+                    if (rep >= entry.threshold && entry.effect && entry.effect.type === 'modifyRosterSlots') {
+                        slots += entry.effect.count;
+                    }
+                });
+            }
+            // Mastermind: +6 extra slots for L1/L2
+            if (league.perks.includes('Mastermind')) slots += 6;
+            return slots;
+        };
+
+        const getUsedSlots = (league, gameData) => {
+            let used = 0;
+            league.characters.forEach(c => {
+                const tmpl = getTemplate(gameData, c.type);
+                if (tmpl) used += tmpl.rosterSlotCost;
+            });
+            league.perks.forEach(pName => {
+                const perk = gameData.perks.find(p => p.name === pName);
+                if (perk) used += perk.slotCost;
+            });
+            used += league.associates.length; // 1 slot each per rulebook p.27
+            return used;
+        };
+
+        const getAvailableSlots = (league, gameData) => getTotalSlots(league, gameData) - getUsedSlots(league, gameData);
+
+        const getMaxSidekicks = (league) => {
+            if (league.perks.includes('Company of Heroes')) return 2;
+            return 1;
+        };
+
+        const getMaxAssociates = (league) => {
+            let max = 2;
+            const rep = league.campaignState?.reputation || 0;
+            if (rep >= 50) max = 3;
+            if (rep >= 75) max = 4;
+            return max;
+        };
+
+        const validateAbilityForCharacter = (abilityName, character, gameData) => {
+            const errors = [];
+            const ability = getAllAbilities(gameData).find(a => a.name === abilityName);
+            if (!ability) {
+                // Check epic abilities too
+                const epicAb = (gameData.abilities.epic || []).find(a => a.name === abilityName);
+                if (!epicAb) return ['Ability not found'];
+            }
+            const ab = ability || (gameData.abilities.epic || []).find(a => a.name === abilityName);
+
+            // Level restriction
+            if (ab.level > character.level) errors.push(`Requires level ${ab.level}+`);
+
+            // No duplicates
+            if (character.abilities.includes(abilityName)) errors.push('Already selected');
+            if (character.freeAbilities.includes(abilityName)) errors.push('Already selected (free)');
+
+            // True Believer blocks all others
+            if (character.abilities.includes('True Believer') && abilityName !== 'True Believer')
+                errors.push('True Believer prevents other abilities');
+            if (abilityName === 'True Believer' && character.abilities.length > 0)
+                errors.push('True Believer must be the only ability');
+            if (abilityName === 'True Believer' && character.type === 'leader')
+                errors.push('Not available to Leaders');
+
+            // Check no-dice conflicts: max 1 ability reducing same skill to no-dice
+            const existingNoDice = new Set();
+            [...character.abilities, ...character.freeAbilities].forEach(aName => {
+                const a = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(x => x.name === aName);
+                if (a) a.effects.filter(e => e.type === 'setNoDice').forEach(e => e.target.forEach(s => existingNoDice.add(s)));
+            });
+            const newNoDice = ab.effects.filter(e => e.type === 'setNoDice').flatMap(e => e.target);
+            newNoDice.forEach(skill => {
+                if (existingNoDice.has(skill)) errors.push(`Already has ability reducing ${skill} to no-dice`);
+            });
+
+            // Check no-action conflicts
+            const hasPreventAction = [...character.abilities, ...character.freeAbilities].some(aName => {
+                const a = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(x => x.name === aName);
+                return a && a.effects.some(e => e.type === 'preventAction');
+            });
+            if (hasPreventAction && ab.effects.some(e => e.type === 'preventAction'))
+                errors.push('Already has ability preventing actions');
+
+            // Incompatibility checks
+            if (ab.incompatibleWith && ab.incompatibleWith.length > 0) {
+                if (ab.incompatibleWith.includes('all') && character.abilities.length > 0)
+                    errors.push('Incompatible with all other abilities');
+                ab.incompatibleWith.filter(x => x !== 'all' && x !== 'preventAction' && x !== 'setNoDice').forEach(inc => {
+                    if (character.abilities.includes(inc)) errors.push(`Incompatible with ${inc}`);
+                });
+                if (ab.incompatibleWith.includes('preventAction') && hasPreventAction)
+                    errors.push('Incompatible with no-action abilities');
+                if (ab.incompatibleWith.includes('setNoDice') && existingNoDice.size > 0)
+                    errors.push('Incompatible with no-dice abilities');
+            }
+
+            return errors;
+        };
+
+        const validateLeague = (league, gameData) => {
+            const errors = [];
+            const totalSlots = getTotalSlots(league, gameData);
+            const usedSlots = getUsedSlots(league, gameData);
+            if (usedSlots > totalSlots) errors.push(`Over slot limit: ${usedSlots}/${totalSlots}`);
+
+            const leaders = league.characters.filter(c => c.type === 'leader');
+            const sidekicks = league.characters.filter(c => c.type === 'sidekick');
+            const hasMastermind = league.perks.includes('Mastermind');
+            const hasLoL = league.perks.includes('League of Legends');
+
+            if (!hasMastermind && !hasLoL && leaders.length !== 1) errors.push('League must have exactly 1 Leader');
+            if (hasMastermind && leaders.length > 0) errors.push('Mastermind: league has no Leader character');
+            if (hasLoL && leaders.length > 0) errors.push('League of Legends: no Leader character');
+
+            if (sidekicks.length > getMaxSidekicks(league)) errors.push(`Max ${getMaxSidekicks(league)} Sidekick(s)`);
+            if (league.associates.length > getMaxAssociates(league)) errors.push(`Max ${getMaxAssociates(league)} Associates`);
+
+            if (league.perks.includes('Duo')) {
+                const nonLeaderSidekick = league.characters.filter(c => c.type !== 'leader' && c.type !== 'sidekick');
+                if (nonLeaderSidekick.length > 0) errors.push('Duo: only Leader and Sidekick allowed');
+            }
+            if (league.perks.includes('Companions') && sidekicks.length > 0)
+                errors.push('Companions: cannot include a Sidekick');
+
+            return errors;
+        };
+
+        // ==========================================
+        // 5. SKILL COMPUTATION
+        // ==========================================
+
+        const shiftDiceType = (diceType, direction) => {
+            const idx = DICE_ORDER[diceType];
+            if (idx === undefined) return diceType;
+            const newIdx = idx + direction;
+            if (newIdx < 0) return 'no-dice';
+            if (newIdx >= DICE_TYPES.length) return DICE_TYPES[DICE_TYPES.length - 1];
+            return DICE_TYPES[newIdx];
+        };
+
+        const resolveTargets = (target, character, abilityName) => {
+            if (typeof target === 'string') {
+                if (target.startsWith('pick')) return character.abilityChoices[abilityName] || [];
+                return [target];
+            }
+            if (Array.isArray(target)) return target;
+            return [];
+        };
+
+        const applyAbilityEffects = (skills, abilityNames, character, gameData) => {
+            const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
+            abilityNames.forEach(abilityName => {
+                const ability = allAbPool.find(a => a.name === abilityName);
+                if (!ability) return;
+                ability.effects.forEach(effect => {
+                    if (effect.type === 'addDice') {
+                        resolveTargets(effect.target, character, abilityName).forEach(skill => {
+                            if (skills[skill]) {
+                                skills[skill].bonusCount += effect.count;
+                                skills[skill].annotations.push(`+${effect.count} from ${abilityName}`);
+                            }
+                        });
+                    }
+                    if (effect.type === 'setNoDice') {
+                        effect.target.forEach(skill => {
+                            if (skills[skill]) {
+                                skills[skill].noDice = true;
+                                skills[skill].annotations.push(`No-dice from ${abilityName}`);
+                            }
+                        });
+                    }
+                    if (effect.type === 'shiftUp') {
+                        effect.target.forEach(skill => {
+                            if (skills[skill]) {
+                                skills[skill].diceTypeShift += 1;
+                                skills[skill].annotations.push(`Shift up from ${abilityName}`);
+                            }
+                        });
+                    }
+                    if (effect.type === 'shiftDown') {
+                        effect.target.forEach(skill => {
+                            if (skills[skill]) {
+                                skills[skill].diceTypeShift -= 1;
+                                skills[skill].annotations.push(`Shift down from ${abilityName}`);
+                            }
+                        });
+                    }
+                });
+            });
+        };
+
+        const finalizeSkills = (skills) => {
+            SKILLS.forEach(skill => {
+                const s = skills[skill];
+                if (s.noDice) {
+                    s.finalCount = 0; s.finalDiceType = 'no-dice'; s.display = '\u2014';
+                } else {
+                    s.finalCount = s.baseCount + s.bonusCount;
+                    const shifted = shiftDiceType(s.baseDiceType, s.diceTypeShift);
+                    if (shifted === 'no-dice') {
+                        s.finalDiceType = 'no-dice'; s.finalCount = 0; s.display = '\u2014';
+                    } else {
+                        s.finalDiceType = shifted;
+                        s.display = `${s.finalCount}${s.finalDiceType}`;
+                    }
+                }
+            });
+        };
+
+        const computeCharacterSkills = (character, gameData) => {
+            const template = getTemplate(gameData, character.type);
+            if (!template) return null;
+
+            if (character.type === 'gang') return computeGangSkills(character, gameData);
+
+            const skills = {};
+            SKILLS.forEach(skill => {
+                const assignment = character.skillAssignments[skill];
+                skills[skill] = {
+                    baseCount: assignment?.count || 0,
+                    baseDiceType: assignment?.diceType || 'd6',
+                    bonusCount: 0, diceTypeShift: 0, noDice: false, annotations: [],
+                };
+            });
+
+            applyAbilityEffects(skills, [...character.abilities, ...character.freeAbilities], character, gameData);
+            finalizeSkills(skills);
+            return skills;
+        };
+
+        const computeGangSkills = (character, gameData) => {
+            const models = character.gangModels || 5;
+            const combatDice = Math.ceil(models / 2);
+            const skills = {};
+            SKILLS.forEach(skill => {
+                const isCombat = ['Brawl', 'Shoot', 'Might'].includes(skill);
+                skills[skill] = {
+                    baseCount: isCombat ? combatDice : 1,
+                    baseDiceType: 'd6',
+                    bonusCount: 0, diceTypeShift: 0, noDice: false, annotations: [],
+                };
+            });
+
+            applyAbilityEffects(skills, [...character.abilities, ...character.freeAbilities], character, gameData);
+            finalizeSkills(skills);
+            return skills;
+        };
+
+        // ==========================================
+        // 5b. TOPBAR COMPONENT
+        // ==========================================
+        const TopBar = ({ league, updateLeague, onBack }) => (
+            <div className="p-2 flex items-center justify-between no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
+                <div className="flex items-center gap-3">
+                    <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)'}}>
+                        <Icons.ArrowLeft size={18} />
+                    </button>
+                    <span className="typewriter text-sm tracking-widest hidden sm:inline" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
+                        className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
+                    <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
+                        <Icons.Download size={16} />
+                    </button>
+                    <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
+                        <Icons.Printer size={16} />
+                    </button>
+                </div>
+            </div>
+        );
+
+        // ==========================================
+        // 5c. ROSTER SIDEBAR COMPONENT
+        // ==========================================
+        const SlotBar = ({ used, total }) => {
+            const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+            const over = used > total;
+            return (
+                <div className="mb-3">
+                    <div className="flex justify-between items-center mb-1">
+                        <span className="typewriter text-xs" style={{color:'var(--ink-light)'}}>Roster Slots</span>
+                        <span className="typewriter text-xs font-bold" style={{color: over ? 'var(--crimson)' : 'var(--ink)'}}>{used}/{total}</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full" style={{background:'var(--border)'}}>
+                        <div className="h-full rounded-full transition-all" style={{width:`${pct}%`, background: over ? 'var(--crimson)' : 'var(--leather)'}} />
+                    </div>
+                </div>
+            );
+        };
+
+        const RosterSidebar = ({ league, gameData, selectedCharId, onSelectChar, onOpenAddModal, activeView, onSetView }) => {
+            const used = getUsedSlots(league, gameData);
+            const total = getTotalSlots(league, gameData);
+            const leaders = league.characters.filter(c => c.type === 'leader');
+            const sidekicks = league.characters.filter(c => c.type === 'sidekick');
+            const allies = league.characters.filter(c => c.type === 'ally');
+            const followers = league.characters.filter(c => c.type === 'follower');
+            const gangs = league.characters.filter(c => c.type === 'gang');
+
+            const CharCard = ({ c }) => {
+                const tmpl = getTemplate(gameData, c.type);
+                const isSelected = selectedCharId === c.id;
+                // Completeness check
+                const hasEmptyName = !c.name || c.name.trim() === '';
+                const hasUnassignedSkills = c.type !== 'gang' && c.type !== 'follower' && SKILLS.some(s => c.skillAssignments?.[s]?.count == null || c.skillAssignments?.[s]?.diceType == null);
+                const hasFollowerUnassigned = c.type === 'follower' ? false : false; // followers are pre-filled
+                const incomplete = hasEmptyName || hasUnassignedSkills;
+                return (
+                    <div onClick={() => onSelectChar(c.id)}
+                        className="p-2 mb-2 rounded cursor-pointer transition-all hover:opacity-90"
+                        style={{
+                            background:'var(--paper)',
+                            border: isSelected ? '2px solid var(--crimson)' : '1px solid var(--border)',
+                            borderLeft: `4px solid ${LEVEL_COLORS[c.type]}`,
+                        }}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                                {incomplete && <Icons.AlertTriangle size={12} style={{color:'var(--crimson)'}} />}
+                                <div>
+                                    <div className="typewriter text-xs uppercase" style={{color: LEVEL_COLORS[c.type]}}>{LEVEL_LABELS[c.type]}</div>
+                                    <div className="brand-font text-sm font-bold truncate" style={{color:'var(--ink)', maxWidth:'130px'}}>{c.name || 'Unnamed'}</div>
+                                </div>
+                            </div>
+                            {tmpl && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{tmpl.health}</span>}
+                        </div>
+                    </div>
+                );
+            };
+
+            const Section = ({ title, chars }) => {
+                if (chars.length === 0) return null;
+                return (
+                    <div className="mb-2">
+                        <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--ink-faded)'}}>{title}</div>
+                        {chars.map(c => <CharCard key={c.id} c={c} />)}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="w-60 overflow-y-auto p-3 no-print flex flex-col" style={{background:'var(--paper-dark)', borderRight:'2px solid var(--border)'}}>
+                    <SlotBar used={used} total={total} />
+
+                    <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Field Operatives</div>
+
+                    <div className="flex-1 overflow-y-auto">
+                        <Section title="Leader" chars={leaders} />
+                        <Section title="Sidekicks" chars={sidekicks} />
+                        <Section title="Allies" chars={allies} />
+                        <Section title="Followers" chars={followers} />
+                        <Section title="Gangs" chars={gangs} />
+
+                        <div className="mb-2 mt-3">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
+                                style={{color: activeView === 'perks' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                                onClick={() => onSetView('perks')}>
+                                <span>Perks ({league.perks.length})</span>
+                                <Icons.Edit2 size={10} />
+                            </div>
+                            {league.perks.map(p => (
+                                <div key={p} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
+                                    {p}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mb-2 mt-3">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
+                                style={{color: activeView === 'associates' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                                onClick={() => onSetView('associates')}>
+                                <span>Associates ({league.associates.length})</span>
+                                <Icons.Edit2 size={10} />
+                            </div>
+                            {league.associates.map(a => (
+                                <div key={a.id} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
+                                    {a.name || 'Unnamed'}
+                                </div>
+                            ))}
+                        </div>
+
+                        {league.characters.length === 0 && (
+                            <p className="text-xs typewriter" style={{color:'var(--ink-faded)'}}>No operatives yet</p>
+                        )}
+                    </div>
+
+                    <button onClick={onOpenAddModal}
+                        className="mt-2 w-full py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80 flex items-center justify-center gap-1"
+                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                        <Icons.Plus size={14} /> Add
+                    </button>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5d. ADD CHARACTER MODAL
+        // ==========================================
+        const AddCharacterModal = ({ league, gameData, onAdd, onClose }) => {
+            const available = getAvailableSlots(league, gameData);
+            const hasLeader = league.characters.some(c => c.type === 'leader');
+            const sidekickCount = league.characters.filter(c => c.type === 'sidekick').length;
+            const maxSK = getMaxSidekicks(league);
+            const hasMastermind = league.perks.includes('Mastermind');
+            const hasLoL = league.perks.includes('League of Legends');
+
+            const options = [
+                { type: 'leader', label: 'Leader', cost: 0, disabled: hasLeader || hasMastermind || hasLoL, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : hasLoL ? 'League of Legends: no Leader' : '' },
+                { type: 'sidekick', label: 'Sidekick', cost: 3, disabled: sidekickCount >= maxSK || available < 3, reason: sidekickCount >= maxSK ? `Max ${maxSK} Sidekick(s)` : 'Not enough slots' },
+                { type: 'ally', label: 'Ally', cost: 2, disabled: available < 2, reason: 'Not enough slots' },
+                { type: 'follower', label: 'Follower', cost: 1, disabled: available < 1, reason: 'Not enough slots' },
+                { type: 'gang', label: 'Gang', cost: 2, disabled: available < 2, reason: 'Not enough slots' },
+            ];
+
+            // Filter: Duo perk restricts to leader+sidekick only
+            const isDuo = league.perks.includes('Duo');
+            const isCompanions = league.perks.includes('Companions');
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.6)'}} onClick={onClose}>
+                    <div className="p-6 rounded-lg max-w-sm w-full" style={{background:'var(--paper)', border:'2px solid var(--border)'}} onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>Add to Roster</h2>
+                            <button onClick={onClose} className="cursor-pointer hover:opacity-70" style={{color:'var(--ink-faded)'}}>
+                                <Icons.X size={18} />
+                            </button>
+                        </div>
+                        <div className="typewriter text-xs mb-4" style={{color:'var(--ink-faded)'}}>
+                            {available} slot{available !== 1 ? 's' : ''} remaining
+                        </div>
+                        <div className="space-y-2">
+                            {options.map(opt => {
+                                let dis = opt.disabled;
+                                let reason = opt.reason;
+                                if (isDuo && !['leader','sidekick'].includes(opt.type)) { dis = true; reason = 'Duo: only Leader & Sidekick'; }
+                                if (isCompanions && opt.type === 'sidekick') { dis = true; reason = 'Companions: no Sidekick'; }
+                                return (
+                                    <button key={opt.type}
+                                        disabled={dis}
+                                        onClick={() => { onAdd(opt.type); onClose(); }}
+                                        className="w-full p-3 rounded text-left cursor-pointer transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        style={{background:'var(--paper-dark)', border:`2px solid ${LEVEL_COLORS[opt.type]}`, borderLeftWidth:'5px'}}>
+                                        <div className="flex items-center justify-between">
+                                            <span className="brand-font font-bold" style={{color: LEVEL_COLORS[opt.type]}}>{opt.label}</span>
+                                            <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{opt.cost > 0 ? `${opt.cost} slots` : 'Free'}</span>
+                                        </div>
+                                        {dis && <div className="typewriter text-xs mt-1" style={{color:'var(--crimson)'}}>{reason}</div>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5e. CHARACTER EDITOR — SKILL ASSIGNMENT
+        // ==========================================
+
+        const SkillAssignmentGrid = ({ character, gameData, onUpdate }) => {
+            const template = getTemplate(gameData, character.type);
+            if (!template) return null;
+
+            const isFollower = character.type === 'follower';
+            const isAlly = character.type === 'ally';
+            const isGang = character.type === 'gang';
+
+            // Gang has special rules — no skill assignment
+            if (isGang) {
+                const skills = computeCharacterSkills(character, gameData);
+                if (!skills) return null;
+                return (
+                    <div className="mb-6">
+                        <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Skills (Gang — auto-computed)</div>
+                        <div className="grid gap-1">
+                            {SKILLS.map(skill => (
+                                <div key={skill} className="flex items-center gap-3 py-1 px-2 rounded" style={{background:'var(--paper-dark)'}}>
+                                    <span className="typewriter text-sm w-20" style={{color:'var(--ink)'}}>{skill}</span>
+                                    <span className="brand-font font-bold text-sm" style={{color:'var(--ink)'}}>{skills[skill].display}</span>
+                                    {skills[skill].annotations.length > 0 && (
+                                        <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>({skills[skill].annotations.join(', ')})</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            // Build pools from template
+            const pools = template.skillDicePools;
+            const types = template.skillDiceTypes;
+
+            // Count pool: how many skills can be "high" count vs "low" count
+            const countOptions = [];
+            if (pools) {
+                for (let i = 0; i < pools.highCount; i++) countOptions.push(pools.high);
+                for (let i = 0; i < pools.lowCount; i++) countOptions.push(pools.low);
+            }
+
+            // Type pool: how many skills can be "high" type vs "low" type
+            const typeOptions = [];
+            if (types) {
+                for (let i = 0; i < types.highCount; i++) typeOptions.push(types.high);
+                for (let i = 0; i < types.lowCount; i++) typeOptions.push(types.low);
+            }
+
+            // Count what's been assigned
+            const assignments = character.skillAssignments || {};
+            const assignedCounts = SKILLS.map(s => assignments[s]?.count).filter(v => v != null);
+            const assignedTypes = SKILLS.map(s => assignments[s]?.diceType).filter(v => v != null);
+
+            // Available counts: pool minus what's assigned
+            const remainingCounts = [...countOptions];
+            assignedCounts.forEach(v => {
+                const idx = remainingCounts.indexOf(v);
+                if (idx >= 0) remainingCounts.splice(idx, 1);
+            });
+
+            const remainingTypes = [...typeOptions];
+            assignedTypes.forEach(v => {
+                const idx = remainingTypes.indexOf(v);
+                if (idx >= 0) remainingTypes.splice(idx, 1);
+            });
+
+            // For each skill row, compute what count options are available
+            const getCountOptionsForSkill = (skill) => {
+                const current = assignments[skill]?.count;
+                // Follower: all 1d — read-only
+                if (isFollower) return [1];
+                // Get available pool values plus current value
+                const avail = [...remainingCounts];
+                if (current != null) avail.push(current);
+                const unique = [...new Set(avail)].sort((a, b) => b - a);
+                return unique;
+            };
+
+            const getTypeOptionsForSkill = (skill) => {
+                const current = assignments[skill]?.diceType;
+                // Follower or Ally: all d6 — read-only
+                if (isFollower || isAlly) return ['d6'];
+                const avail = [...remainingTypes];
+                if (current != null) avail.push(current);
+                const unique = [...new Set(avail)].sort((a, b) => DICE_ORDER[b] - DICE_ORDER[a]);
+                return unique;
+            };
+
+            const handleCountChange = (skill, val) => {
+                const newAssignments = { ...assignments };
+                newAssignments[skill] = { ...newAssignments[skill], count: val === '' ? null : Number(val) };
+                onUpdate({ ...character, skillAssignments: newAssignments });
+            };
+
+            const handleTypeChange = (skill, val) => {
+                const newAssignments = { ...assignments };
+                newAssignments[skill] = { ...newAssignments[skill], diceType: val === '' ? null : val };
+                onUpdate({ ...character, skillAssignments: newAssignments });
+            };
+
+            // Compute final skills for display
+            const computed = computeCharacterSkills(character, gameData);
+
+            // Pool summary
+            const countPoolSummary = countOptions.length > 0
+                ? Object.entries(countOptions.reduce((acc, v) => { acc[v] = (acc[v]||0)+1; return acc; }, {})).map(([v,n]) => `${n}x${v}d`).join(', ')
+                : '';
+            const typePoolSummary = typeOptions.length > 0
+                ? Object.entries(typeOptions.reduce((acc, v) => { acc[v] = (acc[v]||0)+1; return acc; }, {})).map(([v,n]) => `${n}x${v}`).join(', ')
+                : '';
+
+            const unassignedCount = SKILLS.filter(s => assignments[s]?.count == null).length;
+            const unassignedType = SKILLS.filter(s => assignments[s]?.diceType == null).length;
+
+            return (
+                <div className="mb-6">
+                    <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--crimson)'}}>Skill Assignment</div>
+                    {!isFollower && !isAlly && (
+                        <div className="flex gap-4 mb-2 typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                            <span>Dice Count Pool: {countPoolSummary} ({remainingCounts.length} unassigned)</span>
+                            <span>Dice Type Pool: {typePoolSummary} ({remainingTypes.length} unassigned)</span>
+                        </div>
+                    )}
+                    {isAlly && (
+                        <div className="mb-2 typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                            Dice Count Pool: {countPoolSummary} ({remainingCounts.length} unassigned) — All dice are d6
+                        </div>
+                    )}
+                    {isFollower && (
+                        <div className="mb-2 typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                            All skills: 1d6 (fixed)
+                        </div>
+                    )}
+
+                    {/* Grid header */}
+                    <div className="grid gap-1" style={{gridTemplateColumns:'100px 80px 80px 1fr'}}>
+                        <div className="typewriter text-xs py-1" style={{color:'var(--ink-faded)'}}>Skill</div>
+                        <div className="typewriter text-xs py-1" style={{color:'var(--ink-faded)'}}>Count</div>
+                        <div className="typewriter text-xs py-1" style={{color:'var(--ink-faded)'}}>Type</div>
+                        <div className="typewriter text-xs py-1" style={{color:'var(--ink-faded)'}}>Final</div>
+
+                        {SKILLS.map(skill => {
+                            const countOpts = getCountOptionsForSkill(skill);
+                            const typeOpts = getTypeOptionsForSkill(skill);
+                            const currentCount = assignments[skill]?.count;
+                            const currentType = assignments[skill]?.diceType;
+                            const final = computed ? computed[skill] : null;
+                            const isReadOnlyCount = isFollower;
+                            const isReadOnlyType = isFollower || isAlly;
+
+                            return (
+                                <React.Fragment key={skill}>
+                                    <div className="typewriter text-sm py-1 flex items-center" style={{color:'var(--ink)'}}>{skill}</div>
+                                    <div className="py-1">
+                                        {isReadOnlyCount ? (
+                                            <span className="typewriter text-sm" style={{color:'var(--ink-faded)'}}>1</span>
+                                        ) : (
+                                            <select value={currentCount ?? ''} onChange={e => handleCountChange(skill, e.target.value)}
+                                                className="w-full rounded px-1 py-0.5 typewriter text-sm cursor-pointer outline-none"
+                                                style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                                <option value="">—</option>
+                                                {countOpts.map(v => <option key={v} value={v}>{v}</option>)}
+                                            </select>
+                                        )}
+                                    </div>
+                                    <div className="py-1">
+                                        {isReadOnlyType ? (
+                                            <span className="typewriter text-sm" style={{color:'var(--ink-faded)'}}>d6</span>
+                                        ) : (
+                                            <select value={currentType ?? ''} onChange={e => handleTypeChange(skill, e.target.value)}
+                                                className="w-full rounded px-1 py-0.5 typewriter text-sm cursor-pointer outline-none"
+                                                style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                                <option value="">—</option>
+                                                {typeOpts.map(v => <option key={v} value={v}>{v}</option>)}
+                                            </select>
+                                        )}
+                                    </div>
+                                    <div className="py-1 flex items-center">
+                                        <span className="brand-font font-bold text-sm" style={{color: final?.noDice ? 'var(--crimson)' : 'var(--ink)'}}>
+                                            {final ? final.display : '—'}
+                                        </span>
+                                        {final && final.annotations.length > 0 && (
+                                            <span className="typewriter text-xs ml-2" style={{color:'var(--ink-faded)'}}>
+                                                ({final.annotations.join(', ')})
+                                            </span>
+                                        )}
+                                    </div>
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5f. CHARACTER EDITOR — ABILITY PICKER
+        // ==========================================
+
+        const AbilityPicker = ({ character, gameData, onUpdate }) => {
+            const [showBrowser, setShowBrowser] = useState(false);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [levelFilter, setLevelFilter] = useState(0);
+            const template = getTemplate(gameData, character.type);
+            if (!template) return null;
+
+            const maxLevel = template.maxAbilityLevel;
+            const maxSlots = template.abilitySlots;
+            const usedSlots = character.abilities.length;
+
+            // Free abilities from Beast/Goon/Dithering
+            const freeAbilities = character.freeAbilities || [];
+
+            const removeAbility = (abilityName) => {
+                const newAbilities = character.abilities.filter(a => a !== abilityName);
+                const newChoices = { ...character.abilityChoices };
+                delete newChoices[abilityName];
+                const newFlavour = { ...character.abilityFlavourNames };
+                delete newFlavour[abilityName];
+                // Also remove any free abilities granted by this one
+                const ability = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(a => a.name === abilityName);
+                let newFree = [...freeAbilities];
+                if (ability) {
+                    ability.effects.filter(e => e.type === 'grantFreeAbilities').forEach(eff => {
+                        // Remove all free abilities that were granted by this parent
+                        newFree = [];
+                    });
+                }
+                onUpdate({ ...character, abilities: newAbilities, abilityChoices: newChoices, abilityFlavourNames: newFlavour, freeAbilities: newFree });
+            };
+
+            const removeFreeAbility = (abilityName) => {
+                onUpdate({ ...character, freeAbilities: freeAbilities.filter(a => a !== abilityName) });
+            };
+
+            const addAbility = (abilityName) => {
+                if (usedSlots >= maxSlots) return;
+                const ability = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(a => a.name === abilityName);
+                if (!ability) return;
+                let updated = { ...character, abilities: [...character.abilities, abilityName] };
+                // Check if ability has pick2 target
+                const hasPick = ability.effects.some(e => typeof e.target === 'string' && e.target.startsWith('pick'));
+                if (hasPick) {
+                    // Will need to pick skills — initialize empty
+                    updated.abilityChoices = { ...updated.abilityChoices, [abilityName]: [] };
+                }
+                onUpdate(updated);
+                setShowBrowser(false);
+            };
+
+            const addFreeAbility = (abilityName, parentAbility) => {
+                onUpdate({ ...character, freeAbilities: [...freeAbilities, abilityName] });
+            };
+
+            const setAbilityChoice = (abilityName, skills) => {
+                onUpdate({ ...character, abilityChoices: { ...character.abilityChoices, [abilityName]: skills } });
+            };
+
+            const setFlavourName = (abilityName, name) => {
+                onUpdate({ ...character, abilityFlavourNames: { ...character.abilityFlavourNames, [abilityName]: name } });
+            };
+
+            // Find abilities that grant free abilities
+            const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
+            const grantingAbilities = character.abilities.filter(aName => {
+                const ab = allAbPool.find(a => a.name === aName);
+                return ab && ab.effects.some(e => e.type === 'grantFreeAbilities');
+            });
+
+            // Get the available pool for browsing
+            const isGangChar = character.type === 'gang';
+            const browseAbilities = (() => {
+                let available = getAbilitiesForLevel(gameData, maxLevel);
+                // Gang characters also get gang-specific abilities
+                if (isGangChar && gameData.abilities.gang) {
+                    available = [...available, ...gameData.abilities.gang];
+                }
+                const filtered = available.filter(ab => {
+                    if (searchTerm && !ab.name.toLowerCase().includes(searchTerm.toLowerCase()) && !ab.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+                    if (levelFilter > 0 && ab.level !== levelFilter) return false;
+                    return true;
+                });
+                return filtered;
+            })();
+
+            const AbilityCard = ({ abilityName, isFree, onRemove }) => {
+                const ab = allAbPool.find(a => a.name === abilityName);
+                if (!ab) return <div className="text-xs typewriter p-2 rounded mb-2" style={{background:'var(--paper-dark)',color:'var(--crimson)'}}>Unknown: {abilityName}</div>;
+
+                const hasPick = ab.effects.some(e => typeof e.target === 'string' && e.target.startsWith('pick'));
+                const pickCount = hasPick ? parseInt(ab.effects.find(e => typeof e.target === 'string' && e.target.startsWith('pick')).target.replace('pick', '')) : 0;
+                const currentPicks = character.abilityChoices[abilityName] || [];
+
+                const grantEffects = ab.effects.filter(e => e.type === 'grantFreeAbilities');
+
+                return (
+                    <div className="p-3 rounded mb-2" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="brand-font font-bold text-sm" style={{color:'var(--ink)'}}>{ab.name}</span>
+                                    <span className="typewriter text-xs px-1 rounded" style={{background:'var(--leather)', color:'var(--paper)'}}>L{ab.level}</span>
+                                    {isFree && <span className="typewriter text-xs px-1 rounded" style={{background:'#2a6e5a', color:'var(--paper)'}}>Free</span>}
+                                </div>
+                                <div className="typewriter text-xs mt-1" style={{color:'var(--ink-light)'}}>{ab.description}</div>
+                            </div>
+                            <button onClick={onRemove} className="cursor-pointer hover:opacity-70 ml-2 flex-shrink-0" style={{color:'var(--crimson)'}}>
+                                <Icons.X size={14} />
+                            </button>
+                        </div>
+
+                        {/* Flavour name input */}
+                        {!isFree && (
+                            <div className="mt-2">
+                                <input value={character.abilityFlavourNames[abilityName] || ''} onChange={e => setFlavourName(abilityName, e.target.value)}
+                                    placeholder="Flavour name (optional)..."
+                                    className="w-full text-xs typewriter px-2 py-1 rounded outline-none"
+                                    style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}} />
+                            </div>
+                        )}
+
+                        {/* Pick skills prompt */}
+                        {hasPick && (
+                            <div className="mt-2 p-2 rounded" style={{background:'var(--paper)', border:'1px dashed var(--border)'}}>
+                                <div className="typewriter text-xs mb-1" style={{color:'var(--crimson)'}}>Select {pickCount} skill{pickCount > 1 ? 's' : ''}:</div>
+                                <div className="flex flex-wrap gap-1">
+                                    {SKILLS.map(skill => {
+                                        const selected = currentPicks.includes(skill);
+                                        const canSelect = selected || currentPicks.length < pickCount;
+                                        return (
+                                            <button key={skill}
+                                                disabled={!canSelect && !selected}
+                                                onClick={() => {
+                                                    if (selected) setAbilityChoice(abilityName, currentPicks.filter(s => s !== skill));
+                                                    else if (canSelect) setAbilityChoice(abilityName, [...currentPicks, skill]);
+                                                }}
+                                                className="px-2 py-0.5 rounded typewriter text-xs cursor-pointer transition-all disabled:opacity-30"
+                                                style={{
+                                                    background: selected ? 'var(--leather)' : 'var(--paper-dark)',
+                                                    color: selected ? 'var(--paper)' : 'var(--ink)',
+                                                    border: `1px solid ${selected ? 'var(--leather)' : 'var(--border)'}`,
+                                                }}>
+                                                {skill}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Grant free abilities prompt */}
+                        {grantEffects.map((eff, i) => {
+                            const needed = eff.count;
+                            const fromList = eff.fromList;
+                            // Resolve "level1" to all level 1 abilities
+                            const availableForGrant = fromList.includes('level1')
+                                ? gameData.abilities.level1.map(a => a.name)
+                                : fromList;
+                            const currentFree = freeAbilities.filter(f => availableForGrant.includes(f));
+                            const stillNeeded = needed - currentFree.length;
+
+                            return (
+                                <div key={i} className="mt-2 p-2 rounded" style={{background:'var(--paper)', border:'1px dashed var(--border)'}}>
+                                    <div className="typewriter text-xs mb-1" style={{color:'var(--crimson)'}}>
+                                        Select {needed} free abilit{needed > 1 ? 'ies' : 'y'} ({currentFree.length}/{needed} chosen):
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                        {availableForGrant.map(aName => {
+                                            const selected = freeAbilities.includes(aName);
+                                            const canAdd = !selected && stillNeeded > 0;
+                                            const errors = !selected ? validateAbilityForCharacter(aName, character, gameData) : [];
+                                            const blocked = errors.length > 0;
+                                            return (
+                                                <button key={aName}
+                                                    disabled={(!canAdd && !selected) || (blocked && !selected)}
+                                                    onClick={() => {
+                                                        if (selected) removeFreeAbility(aName);
+                                                        else if (canAdd && !blocked) addFreeAbility(aName, abilityName);
+                                                    }}
+                                                    title={blocked ? errors.join(', ') : ''}
+                                                    className="px-2 py-0.5 rounded typewriter text-xs cursor-pointer transition-all disabled:opacity-30"
+                                                    style={{
+                                                        background: selected ? '#2a6e5a' : blocked ? 'var(--paper-dark)' : 'var(--paper-dark)',
+                                                        color: selected ? 'var(--paper)' : blocked ? 'var(--ink-faded)' : 'var(--ink)',
+                                                        border: `1px solid ${selected ? '#2a6e5a' : 'var(--border)'}`,
+                                                        textDecoration: blocked ? 'line-through' : 'none',
+                                                    }}>
+                                                    {aName}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="typewriter text-xs uppercase tracking-wider" style={{color:'var(--crimson)'}}>Abilities ({usedSlots}/{maxSlots})</div>
+                        {usedSlots < maxSlots && (
+                            <button onClick={() => { setShowBrowser(true); setSearchTerm(''); }}
+                                className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
+                                style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                                <Icons.Plus size={12} /> Add Ability
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Selected abilities */}
+                    {character.abilities.map(aName => (
+                        <AbilityCard key={aName} abilityName={aName} isFree={false} onRemove={() => removeAbility(aName)} />
+                    ))}
+
+                    {/* Free abilities (not part of parent grant — standalone display) */}
+                    {freeAbilities.filter(f => {
+                        // Only show standalone free abilities that aren't shown under a parent grant
+                        const isFromGrant = grantingAbilities.some(parent => {
+                            const pAb = allAbPool.find(a => a.name === parent);
+                            if (!pAb) return false;
+                            return pAb.effects.some(e => {
+                                if (e.type !== 'grantFreeAbilities') return false;
+                                const list = e.fromList.includes('level1') ? gameData.abilities.level1.map(a => a.name) : e.fromList;
+                                return list.includes(f);
+                            });
+                        });
+                        return !isFromGrant;
+                    }).map(aName => (
+                        <AbilityCard key={aName} abilityName={aName} isFree={true} onRemove={() => removeFreeAbility(aName)} />
+                    ))}
+
+                    {character.abilities.length === 0 && freeAbilities.length === 0 && (
+                        <div className="text-xs typewriter p-3 rounded text-center" style={{background:'var(--paper-dark)', color:'var(--ink-faded)', border:'1px dashed var(--border)'}}>
+                            No abilities selected
+                        </div>
+                    )}
+
+                    {/* Ability Browser Modal */}
+                    {showBrowser && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.6)'}} onClick={() => setShowBrowser(false)}>
+                            <div className="p-4 rounded-lg w-full max-w-lg max-h-[80vh] flex flex-col" style={{background:'var(--paper)', border:'2px solid var(--border)'}} onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>Select Ability</h3>
+                                    <button onClick={() => setShowBrowser(false)} className="cursor-pointer hover:opacity-70" style={{color:'var(--ink-faded)'}}>
+                                        <Icons.X size={18} />
+                                    </button>
+                                </div>
+                                <div className="flex gap-2 mb-3">
+                                    <div className="flex-1 relative">
+                                        <Icons.Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2" style={{color:'var(--ink-faded)'}} />
+                                        <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                            placeholder="Search abilities..."
+                                            className="w-full pl-7 pr-2 py-1.5 rounded typewriter text-sm outline-none"
+                                            style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}} />
+                                    </div>
+                                    <select value={levelFilter} onChange={e => setLevelFilter(Number(e.target.value))}
+                                        className="px-2 py-1 rounded typewriter text-sm cursor-pointer outline-none"
+                                        style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                        <option value={0}>All Levels</option>
+                                        {Array.from({length: maxLevel}, (_,i) => i+1).map(l => <option key={l} value={l}>Level {l}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1 overflow-y-auto space-y-1">
+                                    {browseAbilities.map(ab => {
+                                        const errors = validateAbilityForCharacter(ab.name, character, gameData);
+                                        const blocked = errors.length > 0;
+                                        return (
+                                            <button key={ab.name}
+                                                disabled={blocked}
+                                                onClick={() => addAbility(ab.name)}
+                                                className="w-full text-left p-2 rounded cursor-pointer transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="brand-font font-bold text-sm" style={{color: blocked ? 'var(--ink-faded)' : 'var(--ink)'}}>{ab.name}</span>
+                                                    <span className="typewriter text-xs px-1 rounded" style={{background:'var(--leather)', color:'var(--paper)'}}>L{ab.level}</span>
+                                                </div>
+                                                <div className="typewriter text-xs mt-0.5" style={{color:'var(--ink-faded)'}}>{ab.description}</div>
+                                                {blocked && <div className="typewriter text-xs mt-0.5" style={{color:'var(--crimson)'}}>{errors.join(' | ')}</div>}
+                                            </button>
+                                        );
+                                    })}
+                                    {browseAbilities.length === 0 && (
+                                        <div className="text-center typewriter text-sm py-4" style={{color:'var(--ink-faded)'}}>No matching abilities</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5g. CHARACTER EDITOR (FULL)
+        // ==========================================
+        const CharacterEditor = ({ character, gameData, league, onUpdate, onDelete }) => {
+            const imgRef = useRef(null);
+            const template = getTemplate(gameData, character.type);
+
+            const handleImageUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const data = await resizeImage(file, 128);
+                    onUpdate({ ...character, image: data });
+                } catch { alert('Could not load image'); }
+            };
+
+            return (
+                <div className="flex-1 overflow-y-auto p-6">
+                    {/* Header */}
+                    <div className="flex items-start gap-4 mb-6">
+                        {/* Image */}
+                        <div className="flex-shrink-0 cursor-pointer" onClick={() => imgRef.current?.click()}>
+                            <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                            {character.image ? (
+                                <img src={character.image} className="w-16 h-16 rounded object-cover" style={{border:'2px solid var(--border)'}} />
+                            ) : (
+                                <div className="w-16 h-16 rounded flex items-center justify-center" style={{background:'var(--paper-dark)', border:'2px dashed var(--border)'}}>
+                                    <Icons.Image size={20} className="" style={{color:'var(--ink-faded)'}} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Name + type */}
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="typewriter text-xs uppercase px-2 py-0.5 rounded" style={{background: LEVEL_COLORS[character.type], color:'var(--paper)'}}>
+                                    {LEVEL_LABELS[character.type]}
+                                </span>
+                                {template && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Health: {template.health}</span>}
+                                {character.type === 'gang' && (
+                                    <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Models: {character.gangModels || 5}</span>
+                                )}
+                            </div>
+                            <input value={character.name} onChange={e => onUpdate({...character, name: e.target.value})}
+                                placeholder="Character name..."
+                                className="w-full text-xl brand-font font-bold bg-transparent border-b-2 outline-none px-0 py-1"
+                                style={{color:'var(--ink)', borderColor:'var(--border)'}} />
+                        </div>
+
+                        {/* Delete button */}
+                        <button onClick={() => { if (confirm(`Delete ${character.name || 'this character'}?`)) onDelete(character.id); }}
+                            className="p-2 rounded cursor-pointer hover:opacity-70 flex-shrink-0" style={{color:'var(--crimson)'}} title="Delete character">
+                            <Icons.Trash2 size={18} />
+                        </button>
+                    </div>
+
+                    {/* Gang model count */}
+                    {character.type === 'gang' && (
+                        <div className="mb-4 flex items-center gap-3">
+                            <span className="typewriter text-sm" style={{color:'var(--ink-light)'}}>Number of Models:</span>
+                            <select value={character.gangModels || 5} onChange={e => onUpdate({...character, gangModels: Number(e.target.value)})}
+                                className="px-2 py-1 rounded typewriter text-sm cursor-pointer outline-none"
+                                style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Skill Assignment */}
+                    <SkillAssignmentGrid character={character} gameData={gameData} onUpdate={onUpdate} />
+
+                    {/* Ability Picker */}
+                    <AbilityPicker character={character} gameData={gameData} onUpdate={onUpdate} />
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5h. PERK BROWSER
+        // ==========================================
+        const PERK_RESTRUCTURING = ['Mastermind', 'Duo', 'League of Legends', 'Company of Heroes', 'Companions'];
+
+        const PerkBrowser = ({ league, gameData, updateLeague }) => {
+            const perks = gameData.perks || [];
+            const grouped = {};
+            [0, 1, 2, 3, 4, 10].forEach(cost => { grouped[cost] = []; });
+            perks.forEach(p => {
+                const key = [0, 1, 2, 3, 4, 10].includes(p.slotCost) ? p.slotCost : 10;
+                grouped[key].push(p);
+            });
+
+            const totalSlots = getTotalSlots(league, gameData);
+            const usedSlots = getUsedSlots(league, gameData);
+            const remaining = totalSlots - usedSlots;
+
+            const togglePerk = (perkName) => {
+                const perk = perks.find(p => p.name === perkName);
+                if (!perk) return;
+                if (league.perks.includes(perkName)) {
+                    updateLeague(l => ({ ...l, perks: l.perks.filter(p => p !== perkName) }));
+                } else {
+                    if (perk.slotCost > remaining) return;
+                    updateLeague(l => ({ ...l, perks: [...l.perks, perkName] }));
+                }
+            };
+
+            const checkPrereqs = (perk) => {
+                const reasons = [];
+                if (perk.prerequisites && perk.prerequisites.length > 0) {
+                    perk.prerequisites.forEach(prereq => {
+                        if (!league.perks.includes(prereq)) reasons.push(`Requires perk: ${prereq}`);
+                    });
+                }
+                if (perk.incompatibleWith) {
+                    perk.incompatibleWith.forEach(inc => {
+                        if (league.perks.includes(inc)) reasons.push(`Incompatible with ${inc}`);
+                    });
+                }
+                return reasons;
+            };
+
+            const COST_LABELS = { 0: 'Free Perks', 1: '1-Slot Perks', 2: '2-Slot Perks', 3: '3-Slot Perks', 4: '4-Slot Perks', 10: 'Major Perks' };
+
+            return (
+                <div className="flex-1 overflow-y-auto p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="brand-font text-xl font-bold" style={{color:'var(--ink)'}}>League Perks</h2>
+                        <div className="typewriter text-sm" style={{color: remaining < 0 ? 'var(--crimson)' : 'var(--ink-faded)'}}>
+                            {usedSlots}/{totalSlots} slots used ({remaining} remaining)
+                        </div>
+                    </div>
+
+                    {league.perks.length > 0 && (
+                        <div className="mb-4 p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                            <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Selected Perks</div>
+                            <div className="flex flex-wrap gap-2">
+                                {league.perks.map(pName => {
+                                    const p = perks.find(x => x.name === pName);
+                                    return (
+                                        <span key={pName} className="inline-flex items-center gap-1 px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80"
+                                            style={{background:'var(--leather)', color:'var(--paper)'}}
+                                            onClick={() => togglePerk(pName)}>
+                                            {pName} {p ? `(${p.slotCost})` : ''} <Icons.X size={10} />
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {[0, 1, 2, 3, 4, 10].map(cost => {
+                        const group = grouped[cost];
+                        if (!group || group.length === 0) return null;
+                        return (
+                            <div key={cost} className="mb-6">
+                                <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>{COST_LABELS[cost]}</div>
+                                <div className="space-y-2">
+                                    {group.map(perk => {
+                                        const selected = league.perks.includes(perk.name);
+                                        const prereqIssues = checkPrereqs(perk);
+                                        const blocked = !selected && (prereqIssues.length > 0 || perk.slotCost > remaining);
+                                        const isRestructuring = PERK_RESTRUCTURING.includes(perk.name);
+
+                                        return (
+                                            <div key={perk.name}
+                                                onClick={() => !blocked && togglePerk(perk.name)}
+                                                className={`p-3 rounded cursor-pointer transition-all ${blocked ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}
+                                                style={{
+                                                    background: selected ? 'var(--leather)' : 'var(--paper-dark)',
+                                                    border: selected ? '2px solid var(--crimson)' : '1px solid var(--border)',
+                                                }}
+                                                title={blocked ? (prereqIssues.length > 0 ? prereqIssues.join(', ') : 'Not enough slots') : ''}>
+                                                <div className="flex items-center gap-2">
+                                                    {selected && <span style={{color:'var(--paper)'}}>&#10003;</span>}
+                                                    <span className="brand-font font-bold text-sm" style={{color: selected ? 'var(--paper)' : 'var(--ink)'}}>
+                                                        {perk.name}
+                                                    </span>
+                                                    <span className="typewriter text-xs px-1 rounded" style={{background: selected ? 'var(--crimson)' : 'var(--border)', color: selected ? 'var(--paper)' : 'var(--ink-faded)'}}>
+                                                        {perk.slotCost} slot{perk.slotCost !== 1 ? 's' : ''}
+                                                    </span>
+                                                    {isRestructuring && (
+                                                        <span className="typewriter text-xs px-1 rounded" style={{background:'var(--crimson)', color:'var(--paper)'}}>
+                                                            Restructures League
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="typewriter text-xs mt-1" style={{color: selected ? 'var(--paper-dark)' : 'var(--ink-light)'}}>
+                                                    {perk.description}
+                                                </div>
+                                                {!selected && perk.slotCost > 0 && (
+                                                    <div className="typewriter text-xs mt-1" style={{color:'var(--ink-faded)'}}>
+                                                        Costs {perk.slotCost} of your {remaining} remaining slots
+                                                    </div>
+                                                )}
+                                                {blocked && prereqIssues.length > 0 && (
+                                                    <div className="typewriter text-xs mt-1" style={{color:'var(--crimson)'}}>
+                                                        {prereqIssues.join(' | ')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5i. ASSOCIATE BUILDER
+        // ==========================================
+        const AssociateBuilder = ({ league, gameData, updateLeague }) => {
+            const maxAssociates = getMaxAssociates(league);
+            const associates = league.associates || [];
+            const associateAbilities = gameData.associateAbilities || [];
+
+            // Collect all used abilities across all associates
+            const allUsedAbilities = associates.flatMap(a => a.abilities || []);
+
+            const addAssociate = () => {
+                if (associates.length >= maxAssociates) return;
+                updateLeague(l => ({ ...l, associates: [...l.associates, EMPTY_ASSOCIATE()] }));
+            };
+
+            const removeAssociate = (id) => {
+                updateLeague(l => ({ ...l, associates: l.associates.filter(a => a.id !== id) }));
+            };
+
+            const updateAssociate = (id, field, value) => {
+                updateLeague(l => ({
+                    ...l,
+                    associates: l.associates.map(a => a.id === id ? { ...a, [field]: value } : a),
+                }));
+            };
+
+            const setAssociateAbility = (assocId, slotIdx, abilityName) => {
+                updateLeague(l => ({
+                    ...l,
+                    associates: l.associates.map(a => {
+                        if (a.id !== assocId) return a;
+                        const newAbilities = [...(a.abilities || [])];
+                        newAbilities[slotIdx] = abilityName || null;
+                        return { ...a, abilities: newAbilities.filter(Boolean) };
+                    }),
+                }));
+            };
+
+            const getAvailableAbilitiesForSlot = (assocId, slotIdx) => {
+                const assoc = associates.find(a => a.id === assocId);
+                const currentVal = assoc?.abilities?.[slotIdx];
+                // Exclude abilities used by OTHER associates or in OTHER slots of this associate
+                return associateAbilities.filter(ab => {
+                    if (ab.name === currentVal) return true;
+                    return !allUsedAbilities.includes(ab.name);
+                });
+            };
+
+            return (
+                <div className="flex-1 overflow-y-auto p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="brand-font text-xl font-bold" style={{color:'var(--ink)'}}>Associates</h2>
+                        <div className="typewriter text-sm" style={{color:'var(--ink-faded)'}}>
+                            {associates.length}/{maxAssociates} associates (1 slot each)
+                        </div>
+                    </div>
+
+                    {associates.length === 0 && (
+                        <div className="text-center p-8 rounded" style={{background:'var(--paper-dark)', border:'1px dashed var(--border)'}}>
+                            <Icons.Users size={36} className="mx-auto mb-3" style={{color:'var(--ink-faded)'}} />
+                            <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>No associates yet. Associates cost 1 roster slot each.</p>
+                        </div>
+                    )}
+
+                    {associates.map((assoc, idx) => (
+                        <div key={assoc.id} className="p-4 rounded mb-3" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                            <div className="flex items-center justify-between mb-3">
+                                <input value={assoc.name} onChange={e => updateAssociate(assoc.id, 'name', e.target.value)}
+                                    placeholder="Associate name..."
+                                    className="flex-1 text-lg brand-font font-bold bg-transparent border-b-2 outline-none px-0 py-1 mr-3"
+                                    style={{color:'var(--ink)', borderColor:'var(--border)'}} />
+                                <button onClick={() => { if (confirm(`Remove ${assoc.name || 'this associate'}?`)) removeAssociate(assoc.id); }}
+                                    className="p-1 rounded cursor-pointer hover:opacity-70 flex-shrink-0" style={{color:'var(--crimson)'}}>
+                                    <Icons.Trash2 size={16} />
+                                </button>
+                            </div>
+                            <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Abilities (2)</div>
+                            {[0, 1].map(slotIdx => {
+                                const currentVal = assoc.abilities?.[slotIdx] || '';
+                                const available = getAvailableAbilitiesForSlot(assoc.id, slotIdx);
+                                return (
+                                    <div key={slotIdx} className="mb-2">
+                                        <select value={currentVal} onChange={e => setAssociateAbility(assoc.id, slotIdx, e.target.value)}
+                                            className="w-full px-2 py-1.5 rounded typewriter text-sm cursor-pointer outline-none"
+                                            style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                            <option value="">-- Select ability --</option>
+                                            {available.map(ab => (
+                                                <option key={ab.name} value={ab.name}>{ab.name}</option>
+                                            ))}
+                                        </select>
+                                        {currentVal && (() => {
+                                            const ab = associateAbilities.find(a => a.name === currentVal);
+                                            return ab ? (
+                                                <div className="typewriter text-xs mt-1 px-2" style={{color:'var(--ink-faded)'}}>{ab.description}</div>
+                                            ) : null;
+                                        })()}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))}
+
+                    <button onClick={addAssociate}
+                        disabled={associates.length >= maxAssociates}
+                        className="mt-2 w-full py-3 rounded typewriter text-sm cursor-pointer hover:opacity-80 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                        <Icons.Plus size={14} /> Add Associate
+                    </button>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5j. PRINTABLE ROSTER
+        // ==========================================
+        const PrintableRoster = ({ league, gameData }) => {
+            const totalSlots = getTotalSlots(league, gameData);
+            const usedSlots = getUsedSlots(league, gameData);
+            const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
+
+            return (
+                <div className="print-only" style={{fontFamily:'Georgia, serif', color:'#000', background:'#fff', padding:'16px'}}>
+                    {/* Roster Header */}
+                    <div style={{borderBottom:'3px double #000', paddingBottom:'8px', marginBottom:'16px'}}>
+                        <h1 style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'28px', fontWeight:'bold', margin:'0 0 4px 0'}}>{league.name}</h1>
+                        <div style={{fontSize:'12px', fontFamily:'Special Elite, monospace'}}>
+                            Slots: {usedSlots}/{totalSlots}
+                            {league.perks.length > 0 && <span> | Perks: {league.perks.join(', ')}</span>}
+                        </div>
+                    </div>
+
+                    {/* Character Cards */}
+                    {league.characters.map(character => {
+                        const template = getTemplate(gameData, character.type);
+                        const skills = computeCharacterSkills(character, gameData);
+                        return (
+                            <div key={character.id} className="print-card" style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', marginBottom:'16px', padding:'12px', background:'#fff'}}>
+                                <div style={{display:'flex', alignItems:'flex-start', gap:'12px', marginBottom:'8px'}}>
+                                    {character.image && (
+                                        <img src={character.image} style={{width:'48px', height:'48px', objectFit:'cover', borderRadius:'4px', border:'1px solid #666'}} />
+                                    )}
+                                    <div style={{flex:1}}>
+                                        <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                                            <span style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'18px', fontWeight:'bold'}}>{character.name || 'Unnamed'}</span>
+                                            <span style={{fontSize:'10px', fontFamily:'Special Elite, monospace', padding:'1px 6px', border:'1px solid #000', borderRadius:'3px', textTransform:'uppercase'}}>
+                                                {LEVEL_LABELS[character.type]}
+                                            </span>
+                                        </div>
+                                        {template && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Health: {template.health}</div>}
+                                        {character.type === 'gang' && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Models: {character.gangModels || 5}</div>}
+                                    </div>
+                                </div>
+
+                                {/* Skill table */}
+                                {skills && (
+                                    <table style={{width:'100%', borderCollapse:'collapse', marginBottom:'8px', fontSize:'11px', fontFamily:'Special Elite, monospace'}}>
+                                        <thead>
+                                            <tr style={{borderBottom:'2px solid #000'}}>
+                                                <th style={{textAlign:'left', padding:'2px 6px', width:'80px'}}>Skill</th>
+                                                <th style={{textAlign:'center', padding:'2px 6px'}}>Final</th>
+                                                <th style={{textAlign:'left', padding:'2px 6px'}}>Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {SKILLS.map(skill => (
+                                                <tr key={skill} style={{borderBottom:'1px solid #ccc'}}>
+                                                    <td style={{padding:'2px 6px', fontWeight:'bold'}}>{skill}</td>
+                                                    <td style={{padding:'2px 6px', textAlign:'center'}}>{skills[skill].display}</td>
+                                                    <td style={{padding:'2px 6px', fontSize:'9px', color:'#666'}}>{skills[skill].annotations.join(', ')}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+
+                                {/* Abilities */}
+                                {(character.abilities.length > 0 || character.freeAbilities.length > 0) && (
+                                    <div style={{fontSize:'11px'}}>
+                                        <div style={{fontFamily:'Special Elite, monospace', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'4px', paddingBottom:'2px'}}>Abilities</div>
+                                        {[...character.abilities, ...character.freeAbilities].map(aName => {
+                                            const ab = allAbPool.find(a => a.name === aName);
+                                            const flavour = character.abilityFlavourNames?.[aName];
+                                            return (
+                                                <div key={aName} style={{marginBottom:'4px'}}>
+                                                    <span style={{fontWeight:'bold'}}>{flavour ? `${flavour} (${aName})` : aName}</span>
+                                                    {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+
+                    {/* Associates */}
+                    {league.associates.length > 0 && (
+                        <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', background:'#fff'}}>
+                            <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'16px', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Associates</div>
+                            {league.associates.map(assoc => {
+                                const assocAbilities = gameData.associateAbilities || [];
+                                return (
+                                    <div key={assoc.id} style={{marginBottom:'8px', fontSize:'11px', fontFamily:'Special Elite, monospace'}}>
+                                        <span style={{fontWeight:'bold'}}>{assoc.name || 'Unnamed'}</span>
+                                        {(assoc.abilities || []).map(aName => {
+                                            const ab = assocAbilities.find(a => a.name === aName);
+                                            return <div key={aName} style={{marginLeft:'12px', color:'#444'}}>{aName}{ab ? ` — ${ab.description}` : ''}</div>;
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5k. EMPTY STATE
+        // ==========================================
+        const EmptyState = ({ league, onAddLeader, onOpenAddModal }) => {
+            const hasChars = league.characters.length > 0;
+            const hasLeader = league.characters.some(c => c.type === 'leader');
+            return (
+                <div className="flex-1 flex items-center justify-center p-6">
+                    <div className="text-center">
+                        {!hasChars ? (
+                            <>
+                                <Icons.Users size={48} className="mx-auto mb-4" style={{color:'var(--ink-faded)'}} />
+                                <h2 className="brand-font text-xl font-bold mb-2" style={{color:'var(--ink)'}}>Assemble Your League</h2>
+                                <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>Start by creating your Leader — every league needs one.</p>
+                                <button onClick={onAddLeader}
+                                    className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                    style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                    Create Leader
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Icons.FileText size={48} className="mx-auto mb-4" style={{color:'var(--ink-faded)'}} />
+                                <h2 className="brand-font text-xl font-bold mb-2" style={{color:'var(--ink)'}}>Select a Character</h2>
+                                <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>Choose a character from the sidebar to edit their dossier.</p>
+                                {!hasLeader && (
+                                    <button onClick={onAddLeader}
+                                        className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                        style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                        Create Leader
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 6. LEAGUE SELECTOR COMPONENT
+        // ==========================================
+        const LeagueSelector = ({ gameData, onSelect, onCreate }) => {
+            const [leagues, setLeagues] = useState(() => loadLeagueIndex());
+            const importRef = useRef(null);
+            const handleImport = async (e) => {
+                const file = e.target.files[0]; if (!file) return;
+                try {
+                    const league = await importLeagueJSON(file);
+                    if (!league.id) league.id = generateUUID();
+                    saveLeague(league);
+                    onSelect(league);
+                } catch { alert('Invalid league file'); }
+            };
+            const handleDelete = (id, name) => {
+                if (!confirm(`Delete league "${name}"?`)) return;
+                deleteLeague(id);
+                setLeagues(loadLeagueIndex());
+            };
+            return (
+                <div className="h-full flex items-center justify-center" style={{background:'var(--leather)'}}>
+                    <div className="p-8 rounded-lg max-w-md w-full" style={{background:'var(--paper)', border:'2px solid var(--border)'}}>
+                        <h1 className="text-2xl font-bold brand-font mb-6 text-center" style={{color:'var(--crimson)'}}>LEAGUE DOSSIERS</h1>
+                        {leagues.length > 0 && (
+                            <div className="mb-6 max-h-64 overflow-y-auto">
+                                {leagues.sort((a,b) => b.lastModified - a.lastModified).map(entry => (
+                                    <div key={entry.id} className="flex items-center gap-2 mb-2">
+                                        <button onClick={() => onSelect(loadLeague(entry.id))}
+                                            className="flex-1 text-left p-3 rounded cursor-pointer transition-opacity hover:opacity-80"
+                                            style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                                            <div className="font-bold brand-font" style={{color:'var(--ink)'}}>{entry.name}</div>
+                                            <div className="text-xs typewriter" style={{color:'var(--ink-faded)'}}>
+                                                {new Date(entry.lastModified).toLocaleDateString()}
+                                            </div>
+                                        </button>
+                                        <button onClick={() => handleDelete(entry.id, entry.name)}
+                                            className="p-2 rounded cursor-pointer hover:opacity-80" style={{color:'var(--crimson)'}}>
+                                            <Icons.Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <div className="flex gap-3">
+                            <button onClick={onCreate} className="flex-1 px-4 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>New League</button>
+                            <input ref={importRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+                            <button onClick={() => importRef.current.click()} className="flex-1 px-4 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>Import</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 7. APP INIT
+        // ==========================================
+        const App = () => {
+            const [gameData, setGameData] = useState(null);
+            const [league, setLeague] = useState(null);
+            const [showLeagueSelector, setShowLeagueSelector] = useState(true);
+            const [selectedCharId, setSelectedCharId] = useState(null);
+            const [showAddModal, setShowAddModal] = useState(false);
+            const [activeView, setActiveView] = useState(null); // null, 'character', 'perks', 'associates'
+            const [toast, setToast] = useState(null);
+
+            const showToast = (msg, type='info') => { setToast({msg, type}); setTimeout(() => setToast(null), 3000); };
+
+            // Auto-save on league change
+            useEffect(() => {
+                if (league) {
+                    if (!saveLeague(league)) showToast('Storage full — export as JSON to free space', 'error');
+                }
+            }, [league]);
+
+            const updateLeague = useCallback((updater) => {
+                setLeague(prev => typeof updater === 'function' ? updater(prev) : updater);
+            }, []);
+
+            const addCharacter = useCallback((type) => {
+                const tmpl = gameData ? getTemplate(gameData, type) : null;
+                const newChar = EMPTY_CHARACTER(type, tmpl ? {} : undefined);
+                // For follower, pre-fill all skills to 1d6
+                if (type === 'follower') {
+                    SKILLS.forEach(s => { newChar.skillAssignments[s] = { count: 1, diceType: 'd6' }; });
+                }
+                // For ally, pre-fill all dice types to d6
+                if (type === 'ally') {
+                    SKILLS.forEach(s => { newChar.skillAssignments[s] = { ...newChar.skillAssignments[s], diceType: 'd6' }; });
+                }
+                updateLeague(l => ({ ...l, characters: [...l.characters, newChar] }));
+                setSelectedCharId(newChar.id);
+                setActiveView('character');
+            }, [gameData, updateLeague]);
+
+            const updateCharacter = useCallback((updatedChar) => {
+                updateLeague(l => ({
+                    ...l,
+                    characters: l.characters.map(c => c.id === updatedChar.id ? updatedChar : c),
+                }));
+            }, [updateLeague]);
+
+            const deleteCharacter = useCallback((charId) => {
+                updateLeague(l => ({ ...l, characters: l.characters.filter(c => c.id !== charId) }));
+                setSelectedCharId(prev => prev === charId ? null : prev);
+                setActiveView(prev => prev === 'character' ? null : prev);
+            }, [updateLeague]);
+
+            const handleSelectChar = useCallback((id) => {
+                setSelectedCharId(id);
+                setActiveView('character');
+            }, []);
+
+            const handleSetView = useCallback((view) => {
+                setActiveView(view);
+                if (view !== 'character') setSelectedCharId(null);
+            }, []);
+
+            if (!gameData) return <DataLoader onLoad={setGameData} />;
+            if (showLeagueSelector || !league) return <LeagueSelector gameData={gameData} onSelect={(l) => { setLeague(l); setShowLeagueSelector(false); }} onCreate={() => { const l = EMPTY_LEAGUE(); setLeague(l); setShowLeagueSelector(false); }} />;
+
+            const selectedChar = activeView === 'character' ? league.characters.find(c => c.id === selectedCharId) : null;
+
+            const renderCenterPanel = () => {
+                if (activeView === 'perks') {
+                    return <PerkBrowser league={league} gameData={gameData} updateLeague={updateLeague} />;
+                }
+                if (activeView === 'associates') {
+                    return <AssociateBuilder league={league} gameData={gameData} updateLeague={updateLeague} />;
+                }
+                if (selectedChar) {
+                    return (
+                        <CharacterEditor
+                            key={selectedChar.id}
+                            character={selectedChar}
+                            gameData={gameData}
+                            league={league}
+                            onUpdate={updateCharacter}
+                            onDelete={deleteCharacter}
+                        />
+                    );
+                }
+                return (
+                    <EmptyState
+                        league={league}
+                        onAddLeader={() => addCharacter('leader')}
+                        onOpenAddModal={() => setShowAddModal(true)}
+                    />
+                );
+            };
+
+            return (
+                <div className="h-full flex flex-col" style={{background:'var(--paper)'}}>
+                    <TopBar league={league} updateLeague={updateLeague} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); }} />
+
+                    <div className="flex-1 overflow-hidden flex no-print">
+                        <RosterSidebar
+                            league={league} gameData={gameData}
+                            selectedCharId={selectedCharId}
+                            onSelectChar={handleSelectChar}
+                            onOpenAddModal={() => setShowAddModal(true)}
+                            activeView={activeView}
+                            onSetView={handleSetView}
+                        />
+                        {renderCenterPanel()}
+                    </div>
+
+                    <PrintableRoster league={league} gameData={gameData} />
+
+                    {showAddModal && (
+                        <AddCharacterModal
+                            league={league} gameData={gameData}
+                            onAdd={addCharacter}
+                            onClose={() => setShowAddModal(false)}
+                        />
+                    )}
+
+                    {toast && <div className="fixed top-4 right-4 px-4 py-2 rounded shadow-lg typewriter text-sm toast z-50" style={{background: toast.type==='error'?'var(--crimson)':'var(--leather)', color:'var(--paper)'}}>{toast.msg}</div>}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
