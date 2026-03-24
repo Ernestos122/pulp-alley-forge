@@ -655,7 +655,7 @@
             );
         };
 
-        const RosterSidebar = ({ league, gameData, selectedCharId, onSelectChar, onOpenAddModal }) => {
+        const RosterSidebar = ({ league, gameData, selectedCharId, onSelectChar, onOpenAddModal, activeView, onSetView }) => {
             const used = getUsedSlots(league, gameData);
             const total = getTotalSlots(league, gameData);
             const leaders = league.characters.filter(c => c.type === 'leader');
@@ -667,6 +667,11 @@
             const CharCard = ({ c }) => {
                 const tmpl = getTemplate(gameData, c.type);
                 const isSelected = selectedCharId === c.id;
+                // Completeness check
+                const hasEmptyName = !c.name || c.name.trim() === '';
+                const hasUnassignedSkills = c.type !== 'gang' && c.type !== 'follower' && SKILLS.some(s => c.skillAssignments?.[s]?.count == null || c.skillAssignments?.[s]?.diceType == null);
+                const hasFollowerUnassigned = c.type === 'follower' ? false : false; // followers are pre-filled
+                const incomplete = hasEmptyName || hasUnassignedSkills;
                 return (
                     <div onClick={() => onSelectChar(c.id)}
                         className="p-2 mb-2 rounded cursor-pointer transition-all hover:opacity-90"
@@ -676,9 +681,12 @@
                             borderLeft: `4px solid ${LEVEL_COLORS[c.type]}`,
                         }}>
                         <div className="flex items-center justify-between">
-                            <div>
-                                <div className="typewriter text-xs uppercase" style={{color: LEVEL_COLORS[c.type]}}>{LEVEL_LABELS[c.type]}</div>
-                                <div className="brand-font text-sm font-bold truncate" style={{color:'var(--ink)', maxWidth:'140px'}}>{c.name || 'Unnamed'}</div>
+                            <div className="flex items-center gap-1">
+                                {incomplete && <Icons.AlertTriangle size={12} style={{color:'var(--crimson)'}} />}
+                                <div>
+                                    <div className="typewriter text-xs uppercase" style={{color: LEVEL_COLORS[c.type]}}>{LEVEL_LABELS[c.type]}</div>
+                                    <div className="brand-font text-sm font-bold truncate" style={{color:'var(--ink)', maxWidth:'130px'}}>{c.name || 'Unnamed'}</div>
+                                </div>
                             </div>
                             {tmpl && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{tmpl.health}</span>}
                         </div>
@@ -709,27 +717,33 @@
                         <Section title="Followers" chars={followers} />
                         <Section title="Gangs" chars={gangs} />
 
-                        {league.perks.length > 0 && (
-                            <div className="mb-2 mt-3">
-                                <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--ink-faded)'}}>Perks</div>
-                                {league.perks.map(p => (
-                                    <div key={p} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
-                                        {p}
-                                    </div>
-                                ))}
+                        <div className="mb-2 mt-3">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
+                                style={{color: activeView === 'perks' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                                onClick={() => onSetView('perks')}>
+                                <span>Perks ({league.perks.length})</span>
+                                <Icons.Edit2 size={10} />
                             </div>
-                        )}
+                            {league.perks.map(p => (
+                                <div key={p} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
+                                    {p}
+                                </div>
+                            ))}
+                        </div>
 
-                        {league.associates.length > 0 && (
-                            <div className="mb-2 mt-3">
-                                <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--ink-faded)'}}>Associates</div>
-                                {league.associates.map(a => (
-                                    <div key={a.id} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
-                                        {a.name || 'Unnamed'}
-                                    </div>
-                                ))}
+                        <div className="mb-2 mt-3">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
+                                style={{color: activeView === 'associates' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                                onClick={() => onSetView('associates')}>
+                                <span>Associates ({league.associates.length})</span>
+                                <Icons.Edit2 size={10} />
                             </div>
-                        )}
+                            {league.associates.map(a => (
+                                <div key={a.id} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
+                                    {a.name || 'Unnamed'}
+                                </div>
+                            ))}
+                        </div>
 
                         {league.characters.length === 0 && (
                             <p className="text-xs typewriter" style={{color:'var(--ink-faded)'}}>No operatives yet</p>
@@ -1080,8 +1094,13 @@
             });
 
             // Get the available pool for browsing
+            const isGangChar = character.type === 'gang';
             const browseAbilities = (() => {
-                const available = getAbilitiesForLevel(gameData, maxLevel);
+                let available = getAbilitiesForLevel(gameData, maxLevel);
+                // Gang characters also get gang-specific abilities
+                if (isGangChar && gameData.abilities.gang) {
+                    available = [...available, ...gameData.abilities.gang];
+                }
                 const filtered = available.filter(ab => {
                     if (searchTerm && !ab.name.toLowerCase().includes(searchTerm.toLowerCase()) && !ab.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
                     if (levelFilter > 0 && ab.level !== levelFilter) return false;
@@ -1378,7 +1397,362 @@
         };
 
         // ==========================================
-        // 5h. EMPTY STATE
+        // 5h. PERK BROWSER
+        // ==========================================
+        const PERK_RESTRUCTURING = ['Mastermind', 'Duo', 'League of Legends', 'Company of Heroes', 'Companions'];
+
+        const PerkBrowser = ({ league, gameData, updateLeague }) => {
+            const perks = gameData.perks || [];
+            const grouped = {};
+            [0, 1, 2, 3, 4, 10].forEach(cost => { grouped[cost] = []; });
+            perks.forEach(p => {
+                const key = [0, 1, 2, 3, 4, 10].includes(p.slotCost) ? p.slotCost : 10;
+                grouped[key].push(p);
+            });
+
+            const totalSlots = getTotalSlots(league, gameData);
+            const usedSlots = getUsedSlots(league, gameData);
+            const remaining = totalSlots - usedSlots;
+
+            const togglePerk = (perkName) => {
+                const perk = perks.find(p => p.name === perkName);
+                if (!perk) return;
+                if (league.perks.includes(perkName)) {
+                    updateLeague(l => ({ ...l, perks: l.perks.filter(p => p !== perkName) }));
+                } else {
+                    if (perk.slotCost > remaining) return;
+                    updateLeague(l => ({ ...l, perks: [...l.perks, perkName] }));
+                }
+            };
+
+            const checkPrereqs = (perk) => {
+                const reasons = [];
+                if (perk.prerequisite) {
+                    if (perk.prerequisite.type === 'perk' && !league.perks.includes(perk.prerequisite.name)) {
+                        reasons.push(`Requires perk: ${perk.prerequisite.name}`);
+                    }
+                    if (perk.prerequisite.type === 'reputation') {
+                        const rep = league.campaignState?.reputation || 0;
+                        if (rep < perk.prerequisite.min) reasons.push(`Requires ${perk.prerequisite.min}+ reputation`);
+                    }
+                }
+                if (perk.incompatibleWith) {
+                    perk.incompatibleWith.forEach(inc => {
+                        if (league.perks.includes(inc)) reasons.push(`Incompatible with ${inc}`);
+                    });
+                }
+                return reasons;
+            };
+
+            const COST_LABELS = { 0: 'Free Perks', 1: '1-Slot Perks', 2: '2-Slot Perks', 3: '3-Slot Perks', 4: '4-Slot Perks', 10: 'Major Perks' };
+
+            return (
+                <div className="flex-1 overflow-y-auto p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="brand-font text-xl font-bold" style={{color:'var(--ink)'}}>League Perks</h2>
+                        <div className="typewriter text-sm" style={{color: remaining < 0 ? 'var(--crimson)' : 'var(--ink-faded)'}}>
+                            {usedSlots}/{totalSlots} slots used ({remaining} remaining)
+                        </div>
+                    </div>
+
+                    {league.perks.length > 0 && (
+                        <div className="mb-4 p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                            <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Selected Perks</div>
+                            <div className="flex flex-wrap gap-2">
+                                {league.perks.map(pName => {
+                                    const p = perks.find(x => x.name === pName);
+                                    return (
+                                        <span key={pName} className="inline-flex items-center gap-1 px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80"
+                                            style={{background:'var(--leather)', color:'var(--paper)'}}
+                                            onClick={() => togglePerk(pName)}>
+                                            {pName} {p ? `(${p.slotCost})` : ''} <Icons.X size={10} />
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {[0, 1, 2, 3, 4, 10].map(cost => {
+                        const group = grouped[cost];
+                        if (!group || group.length === 0) return null;
+                        return (
+                            <div key={cost} className="mb-6">
+                                <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>{COST_LABELS[cost]}</div>
+                                <div className="space-y-2">
+                                    {group.map(perk => {
+                                        const selected = league.perks.includes(perk.name);
+                                        const prereqIssues = checkPrereqs(perk);
+                                        const blocked = !selected && (prereqIssues.length > 0 || perk.slotCost > remaining);
+                                        const isRestructuring = PERK_RESTRUCTURING.includes(perk.name);
+
+                                        return (
+                                            <div key={perk.name}
+                                                onClick={() => !blocked && togglePerk(perk.name)}
+                                                className={`p-3 rounded cursor-pointer transition-all ${blocked ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}
+                                                style={{
+                                                    background: selected ? 'var(--leather)' : 'var(--paper-dark)',
+                                                    border: selected ? '2px solid var(--crimson)' : '1px solid var(--border)',
+                                                }}
+                                                title={blocked ? (prereqIssues.length > 0 ? prereqIssues.join(', ') : 'Not enough slots') : ''}>
+                                                <div className="flex items-center gap-2">
+                                                    {selected && <span style={{color:'var(--paper)'}}>&#10003;</span>}
+                                                    <span className="brand-font font-bold text-sm" style={{color: selected ? 'var(--paper)' : 'var(--ink)'}}>
+                                                        {perk.name}
+                                                    </span>
+                                                    <span className="typewriter text-xs px-1 rounded" style={{background: selected ? 'var(--crimson)' : 'var(--border)', color: selected ? 'var(--paper)' : 'var(--ink-faded)'}}>
+                                                        {perk.slotCost} slot{perk.slotCost !== 1 ? 's' : ''}
+                                                    </span>
+                                                    {isRestructuring && (
+                                                        <span className="typewriter text-xs px-1 rounded" style={{background:'var(--crimson)', color:'var(--paper)'}}>
+                                                            Restructures League
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="typewriter text-xs mt-1" style={{color: selected ? 'var(--paper-dark)' : 'var(--ink-light)'}}>
+                                                    {perk.description}
+                                                </div>
+                                                {!selected && perk.slotCost > 0 && (
+                                                    <div className="typewriter text-xs mt-1" style={{color:'var(--ink-faded)'}}>
+                                                        Costs {perk.slotCost} of your {remaining} remaining slots
+                                                    </div>
+                                                )}
+                                                {blocked && prereqIssues.length > 0 && (
+                                                    <div className="typewriter text-xs mt-1" style={{color:'var(--crimson)'}}>
+                                                        {prereqIssues.join(' | ')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5i. ASSOCIATE BUILDER
+        // ==========================================
+        const AssociateBuilder = ({ league, gameData, updateLeague }) => {
+            const maxAssociates = getMaxAssociates(league);
+            const associates = league.associates || [];
+            const associateAbilities = gameData.associateAbilities || [];
+
+            // Collect all used abilities across all associates
+            const allUsedAbilities = associates.flatMap(a => a.abilities || []);
+
+            const addAssociate = () => {
+                if (associates.length >= maxAssociates) return;
+                updateLeague(l => ({ ...l, associates: [...l.associates, EMPTY_ASSOCIATE()] }));
+            };
+
+            const removeAssociate = (id) => {
+                updateLeague(l => ({ ...l, associates: l.associates.filter(a => a.id !== id) }));
+            };
+
+            const updateAssociate = (id, field, value) => {
+                updateLeague(l => ({
+                    ...l,
+                    associates: l.associates.map(a => a.id === id ? { ...a, [field]: value } : a),
+                }));
+            };
+
+            const setAssociateAbility = (assocId, slotIdx, abilityName) => {
+                updateLeague(l => ({
+                    ...l,
+                    associates: l.associates.map(a => {
+                        if (a.id !== assocId) return a;
+                        const newAbilities = [...(a.abilities || [])];
+                        newAbilities[slotIdx] = abilityName || null;
+                        return { ...a, abilities: newAbilities.filter(Boolean) };
+                    }),
+                }));
+            };
+
+            const getAvailableAbilitiesForSlot = (assocId, slotIdx) => {
+                const assoc = associates.find(a => a.id === assocId);
+                const currentVal = assoc?.abilities?.[slotIdx];
+                // Exclude abilities used by OTHER associates or in OTHER slots of this associate
+                return associateAbilities.filter(ab => {
+                    if (ab.name === currentVal) return true;
+                    return !allUsedAbilities.includes(ab.name);
+                });
+            };
+
+            return (
+                <div className="flex-1 overflow-y-auto p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="brand-font text-xl font-bold" style={{color:'var(--ink)'}}>Associates</h2>
+                        <div className="typewriter text-sm" style={{color:'var(--ink-faded)'}}>
+                            {associates.length}/{maxAssociates} associates (1 slot each)
+                        </div>
+                    </div>
+
+                    {associates.length === 0 && (
+                        <div className="text-center p-8 rounded" style={{background:'var(--paper-dark)', border:'1px dashed var(--border)'}}>
+                            <Icons.Users size={36} className="mx-auto mb-3" style={{color:'var(--ink-faded)'}} />
+                            <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>No associates yet. Associates cost 1 roster slot each.</p>
+                        </div>
+                    )}
+
+                    {associates.map((assoc, idx) => (
+                        <div key={assoc.id} className="p-4 rounded mb-3" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                            <div className="flex items-center justify-between mb-3">
+                                <input value={assoc.name} onChange={e => updateAssociate(assoc.id, 'name', e.target.value)}
+                                    placeholder="Associate name..."
+                                    className="flex-1 text-lg brand-font font-bold bg-transparent border-b-2 outline-none px-0 py-1 mr-3"
+                                    style={{color:'var(--ink)', borderColor:'var(--border)'}} />
+                                <button onClick={() => { if (confirm(`Remove ${assoc.name || 'this associate'}?`)) removeAssociate(assoc.id); }}
+                                    className="p-1 rounded cursor-pointer hover:opacity-70 flex-shrink-0" style={{color:'var(--crimson)'}}>
+                                    <Icons.Trash2 size={16} />
+                                </button>
+                            </div>
+                            <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Abilities (2)</div>
+                            {[0, 1].map(slotIdx => {
+                                const currentVal = assoc.abilities?.[slotIdx] || '';
+                                const available = getAvailableAbilitiesForSlot(assoc.id, slotIdx);
+                                return (
+                                    <div key={slotIdx} className="mb-2">
+                                        <select value={currentVal} onChange={e => setAssociateAbility(assoc.id, slotIdx, e.target.value)}
+                                            className="w-full px-2 py-1.5 rounded typewriter text-sm cursor-pointer outline-none"
+                                            style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                            <option value="">-- Select ability --</option>
+                                            {available.map(ab => (
+                                                <option key={ab.name} value={ab.name}>{ab.name}</option>
+                                            ))}
+                                        </select>
+                                        {currentVal && (() => {
+                                            const ab = associateAbilities.find(a => a.name === currentVal);
+                                            return ab ? (
+                                                <div className="typewriter text-xs mt-1 px-2" style={{color:'var(--ink-faded)'}}>{ab.description}</div>
+                                            ) : null;
+                                        })()}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))}
+
+                    <button onClick={addAssociate}
+                        disabled={associates.length >= maxAssociates}
+                        className="mt-2 w-full py-3 rounded typewriter text-sm cursor-pointer hover:opacity-80 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                        <Icons.Plus size={14} /> Add Associate
+                    </button>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5j. PRINTABLE ROSTER
+        // ==========================================
+        const PrintableRoster = ({ league, gameData }) => {
+            const totalSlots = getTotalSlots(league, gameData);
+            const usedSlots = getUsedSlots(league, gameData);
+            const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
+
+            return (
+                <div className="print-only" style={{fontFamily:'Georgia, serif', color:'#000', background:'#fff', padding:'16px'}}>
+                    {/* Roster Header */}
+                    <div style={{borderBottom:'3px double #000', paddingBottom:'8px', marginBottom:'16px'}}>
+                        <h1 style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'28px', fontWeight:'bold', margin:'0 0 4px 0'}}>{league.name}</h1>
+                        <div style={{fontSize:'12px', fontFamily:'Special Elite, monospace'}}>
+                            Slots: {usedSlots}/{totalSlots}
+                            {league.perks.length > 0 && <span> | Perks: {league.perks.join(', ')}</span>}
+                        </div>
+                    </div>
+
+                    {/* Character Cards */}
+                    {league.characters.map(character => {
+                        const template = getTemplate(gameData, character.type);
+                        const skills = computeCharacterSkills(character, gameData);
+                        return (
+                            <div key={character.id} className="print-card" style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', marginBottom:'16px', padding:'12px', background:'#fff'}}>
+                                <div style={{display:'flex', alignItems:'flex-start', gap:'12px', marginBottom:'8px'}}>
+                                    {character.image && (
+                                        <img src={character.image} style={{width:'48px', height:'48px', objectFit:'cover', borderRadius:'4px', border:'1px solid #666'}} />
+                                    )}
+                                    <div style={{flex:1}}>
+                                        <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                                            <span style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'18px', fontWeight:'bold'}}>{character.name || 'Unnamed'}</span>
+                                            <span style={{fontSize:'10px', fontFamily:'Special Elite, monospace', padding:'1px 6px', border:'1px solid #000', borderRadius:'3px', textTransform:'uppercase'}}>
+                                                {LEVEL_LABELS[character.type]}
+                                            </span>
+                                        </div>
+                                        {template && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Health: {template.health}</div>}
+                                        {character.type === 'gang' && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Models: {character.gangModels || 5}</div>}
+                                    </div>
+                                </div>
+
+                                {/* Skill table */}
+                                {skills && (
+                                    <table style={{width:'100%', borderCollapse:'collapse', marginBottom:'8px', fontSize:'11px', fontFamily:'Special Elite, monospace'}}>
+                                        <thead>
+                                            <tr style={{borderBottom:'2px solid #000'}}>
+                                                <th style={{textAlign:'left', padding:'2px 6px', width:'80px'}}>Skill</th>
+                                                <th style={{textAlign:'center', padding:'2px 6px'}}>Final</th>
+                                                <th style={{textAlign:'left', padding:'2px 6px'}}>Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {SKILLS.map(skill => (
+                                                <tr key={skill} style={{borderBottom:'1px solid #ccc'}}>
+                                                    <td style={{padding:'2px 6px', fontWeight:'bold'}}>{skill}</td>
+                                                    <td style={{padding:'2px 6px', textAlign:'center'}}>{skills[skill].display}</td>
+                                                    <td style={{padding:'2px 6px', fontSize:'9px', color:'#666'}}>{skills[skill].annotations.join(', ')}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+
+                                {/* Abilities */}
+                                {(character.abilities.length > 0 || character.freeAbilities.length > 0) && (
+                                    <div style={{fontSize:'11px'}}>
+                                        <div style={{fontFamily:'Special Elite, monospace', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'4px', paddingBottom:'2px'}}>Abilities</div>
+                                        {[...character.abilities, ...character.freeAbilities].map(aName => {
+                                            const ab = allAbPool.find(a => a.name === aName);
+                                            const flavour = character.abilityFlavourNames?.[aName];
+                                            return (
+                                                <div key={aName} style={{marginBottom:'4px'}}>
+                                                    <span style={{fontWeight:'bold'}}>{flavour ? `${flavour} (${aName})` : aName}</span>
+                                                    {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+
+                    {/* Associates */}
+                    {league.associates.length > 0 && (
+                        <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', background:'#fff'}}>
+                            <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'16px', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Associates</div>
+                            {league.associates.map(assoc => {
+                                const assocAbilities = gameData.associateAbilities || [];
+                                return (
+                                    <div key={assoc.id} style={{marginBottom:'8px', fontSize:'11px', fontFamily:'Special Elite, monospace'}}>
+                                        <span style={{fontWeight:'bold'}}>{assoc.name || 'Unnamed'}</span>
+                                        {(assoc.abilities || []).map(aName => {
+                                            const ab = assocAbilities.find(a => a.name === aName);
+                                            return <div key={aName} style={{marginLeft:'12px', color:'#444'}}>{aName}{ab ? ` — ${ab.description}` : ''}</div>;
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5k. EMPTY STATE
         // ==========================================
         const EmptyState = ({ league, onAddLeader, onOpenAddModal }) => {
             const hasChars = league.characters.length > 0;
@@ -1481,6 +1855,7 @@
             const [showLeagueSelector, setShowLeagueSelector] = useState(true);
             const [selectedCharId, setSelectedCharId] = useState(null);
             const [showAddModal, setShowAddModal] = useState(false);
+            const [activeView, setActiveView] = useState(null); // null, 'character', 'perks', 'associates'
             const [toast, setToast] = useState(null);
 
             const showToast = (msg, type='info') => { setToast({msg, type}); setTimeout(() => setToast(null), 3000); };
@@ -1509,6 +1884,7 @@
                 }
                 updateLeague(l => ({ ...l, characters: [...l.characters, newChar] }));
                 setSelectedCharId(newChar.id);
+                setActiveView('character');
             }, [gameData, updateLeague]);
 
             const updateCharacter = useCallback((updatedChar) => {
@@ -1521,42 +1897,69 @@
             const deleteCharacter = useCallback((charId) => {
                 updateLeague(l => ({ ...l, characters: l.characters.filter(c => c.id !== charId) }));
                 setSelectedCharId(prev => prev === charId ? null : prev);
+                setActiveView(prev => prev === 'character' ? null : prev);
             }, [updateLeague]);
+
+            const handleSelectChar = useCallback((id) => {
+                setSelectedCharId(id);
+                setActiveView('character');
+            }, []);
+
+            const handleSetView = useCallback((view) => {
+                setActiveView(view);
+                if (view !== 'character') setSelectedCharId(null);
+            }, []);
 
             if (!gameData) return <DataLoader onLoad={setGameData} />;
             if (showLeagueSelector || !league) return <LeagueSelector gameData={gameData} onSelect={(l) => { setLeague(l); setShowLeagueSelector(false); }} onCreate={() => { const l = EMPTY_LEAGUE(); setLeague(l); setShowLeagueSelector(false); }} />;
 
-            const selectedChar = league.characters.find(c => c.id === selectedCharId);
+            const selectedChar = activeView === 'character' ? league.characters.find(c => c.id === selectedCharId) : null;
+
+            const renderCenterPanel = () => {
+                if (activeView === 'perks') {
+                    return <PerkBrowser league={league} gameData={gameData} updateLeague={updateLeague} />;
+                }
+                if (activeView === 'associates') {
+                    return <AssociateBuilder league={league} gameData={gameData} updateLeague={updateLeague} />;
+                }
+                if (selectedChar) {
+                    return (
+                        <CharacterEditor
+                            key={selectedChar.id}
+                            character={selectedChar}
+                            gameData={gameData}
+                            league={league}
+                            onUpdate={updateCharacter}
+                            onDelete={deleteCharacter}
+                        />
+                    );
+                }
+                return (
+                    <EmptyState
+                        league={league}
+                        onAddLeader={() => addCharacter('leader')}
+                        onOpenAddModal={() => setShowAddModal(true)}
+                    />
+                );
+            };
 
             return (
                 <div className="h-full flex flex-col" style={{background:'var(--paper)'}}>
-                    <TopBar league={league} updateLeague={updateLeague} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); }} />
+                    <TopBar league={league} updateLeague={updateLeague} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); }} />
 
-                    <div className="flex-1 overflow-hidden flex">
+                    <div className="flex-1 overflow-hidden flex no-print">
                         <RosterSidebar
                             league={league} gameData={gameData}
                             selectedCharId={selectedCharId}
-                            onSelectChar={(id) => setSelectedCharId(id)}
+                            onSelectChar={handleSelectChar}
                             onOpenAddModal={() => setShowAddModal(true)}
+                            activeView={activeView}
+                            onSetView={handleSetView}
                         />
-
-                        {selectedChar ? (
-                            <CharacterEditor
-                                key={selectedChar.id}
-                                character={selectedChar}
-                                gameData={gameData}
-                                league={league}
-                                onUpdate={updateCharacter}
-                                onDelete={deleteCharacter}
-                            />
-                        ) : (
-                            <EmptyState
-                                league={league}
-                                onAddLeader={() => addCharacter('leader')}
-                                onOpenAddModal={() => setShowAddModal(true)}
-                            />
-                        )}
+                        {renderCenterPanel()}
                     </div>
+
+                    <PrintableRoster league={league} gameData={gameData} />
 
                     {showAddModal && (
                         <AddCharacterModal
