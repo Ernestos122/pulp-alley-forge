@@ -246,7 +246,7 @@
             reader.readAsText(file);
         });
 
-        const resizeImage = (file, maxSize = 128) => new Promise((resolve, reject) => {
+        const resizeImage = (file, maxSize = 256) => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = new Image();
@@ -1696,7 +1696,7 @@
                 const file = e.target.files[0];
                 if (!file) return;
                 try {
-                    const data = await resizeImage(file, 128);
+                    const data = await resizeImage(file, 256);
                     onUpdate({ ...character, image: data });
                 } catch { alert('Could not load image'); }
             };
@@ -1709,10 +1709,10 @@
                         <div className="flex-shrink-0 cursor-pointer" onClick={() => imgRef.current?.click()}>
                             <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                             {character.image ? (
-                                <img src={character.image} className="w-16 h-16 rounded object-cover" style={{border:'2px solid var(--border)'}} />
+                                <img src={character.image} className="w-24 h-24 rounded object-cover" style={{border:'2px solid var(--border)'}} />
                             ) : (
-                                <div className="w-16 h-16 rounded flex items-center justify-center" style={{background:'var(--paper-dark)', border:'2px dashed var(--border)'}}>
-                                    <Icons.Image size={20} className="" style={{color:'var(--ink-faded)'}} />
+                                <div className="w-24 h-24 rounded flex items-center justify-center" style={{background:'var(--paper-dark)', border:'2px dashed var(--border)'}}>
+                                    <Icons.Image size={28} className="" style={{color:'var(--ink-faded)'}} />
                                 </div>
                             )}
                         </div>
@@ -2608,7 +2608,7 @@
                             <div key={character.id} className="print-card" style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', marginBottom:'16px', padding:'12px', background:'#fff'}}>
                                 <div style={{display:'flex', alignItems:'flex-start', gap:'12px', marginBottom:'8px'}}>
                                     {character.image && (
-                                        <img src={character.image} style={{width:'48px', height:'48px', objectFit:'cover', borderRadius:'4px', border:'1px solid #666'}} />
+                                        <img src={character.image} style={{width:'80px', height:'80px', objectFit:'cover', borderRadius:'4px', border:'1px solid #666'}} />
                                     )}
                                     <div style={{flex:1}}>
                                         <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
