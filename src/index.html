@@ -291,16 +291,30 @@
                 reader.readAsText(file);
             };
 
-            useEffect(() => {
-                // 1. Try localStorage cache first
-                const cached = localStorage.getItem(DATA_CACHE_KEY);
-                if (cached) { try { onLoad(JSON.parse(cached)); return; } catch(e) {} }
+            const CURRENT_DATA_VERSION = 2;
 
-                // 2. Try auto-fetching PulpAlley_Data.json from same directory
+            useEffect(() => {
+                // 1. Try auto-fetching first (always gets latest data)
                 fetch('PulpAlley_Data.json')
                     .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
-                    .then(text => { try { cacheAndLoad(text); } catch(e) { setStatus('manual'); } })
-                    .catch(() => setStatus('manual'));
+                    .then(text => { try { cacheAndLoad(text); } catch(e) { fallbackToCache(); } })
+                    .catch(() => fallbackToCache());
+
+                function fallbackToCache() {
+                    // 2. Fall back to localStorage cache
+                    const cached = localStorage.getItem(DATA_CACHE_KEY);
+                    if (cached) {
+                        try {
+                            const data = JSON.parse(cached);
+                            // Invalidate stale cache
+                            if (data.dataVersion && data.dataVersion >= CURRENT_DATA_VERSION) {
+                                onLoad(data); return;
+                            }
+                        } catch(e) {}
+                    }
+                    // 3. Manual file picker as last resort
+                    setStatus('manual');
+                }
             }, []);
 
             if (status === 'loading') return (

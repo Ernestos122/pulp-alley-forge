@@ -1,4 +1,5 @@
 {
+  "dataVersion": 2,
   "characterTemplates": [
     {
       "type": "leader", "level": 4, "health": "d10",
