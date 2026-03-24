@@ -129,7 +129,141 @@
         };
 
         // ==========================================
-        // 2. DATA LOADER COMPONENT
+        // 2. DATA & PERSISTENCE
+        // ==========================================
+
+        // UUID generator
+        const generateUUID = () => {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        };
+
+        // Empty factories
+        const EMPTY_CHARACTER = (type, template) => ({
+            id: generateUUID(),
+            name: '',
+            type,
+            level: type,
+            image: null,
+            skillAssignments: Object.fromEntries(
+                ['Brawl','Shoot','Dodge','Might','Finesse','Cunning'].map(s => [s, {count: null, diceType: null}])
+            ),
+            abilities: [],
+            abilityFlavourNames: {},
+            abilityChoices: {},
+            freeAbilities: [],
+            gangModels: type === 'gang' ? 5 : null,
+            ...(template || {}),
+        });
+
+        const EMPTY_ASSOCIATE = () => ({
+            id: generateUUID(),
+            name: '',
+            abilities: [],
+        });
+
+        const EMPTY_LEAGUE = () => ({
+            id: generateUUID(),
+            name: 'New League',
+            characters: [],
+            perks: [],
+            associates: [],
+            campaignState: {
+                reputation: 0,
+                xp: 0,
+                resources: { tips: 0, backup: 0, gear: 0, contacts: 0 },
+                secretSociety: null,
+                secretSocietyPerks: [],
+            },
+            genre: null,
+            optionalRules: { weapons: false, harrowing: false, supers: false },
+        });
+
+        // LocalStorage helpers
+        const LEAGUE_INDEX_KEY = 'pulpAlley_leagueIndex';
+        const LEAGUE_PREFIX = 'pulpAlley_league_';
+        const DATA_CACHE_KEY = 'pulpAlley_dataCache';
+
+        const loadLeagueIndex = () => {
+            try { return JSON.parse(localStorage.getItem(LEAGUE_INDEX_KEY)) || []; }
+            catch { return []; }
+        };
+
+        const saveLeagueIndex = (index) => {
+            try { localStorage.setItem(LEAGUE_INDEX_KEY, JSON.stringify(index)); }
+            catch (e) { console.warn('Could not save league index:', e); }
+        };
+
+        const loadLeague = (id) => {
+            try { return JSON.parse(localStorage.getItem(LEAGUE_PREFIX + id)); }
+            catch { return null; }
+        };
+
+        const saveLeague = (league) => {
+            try {
+                localStorage.setItem(LEAGUE_PREFIX + league.id, JSON.stringify(league));
+                const index = loadLeagueIndex();
+                const existing = index.findIndex(e => e.id === league.id);
+                const entry = { id: league.id, name: league.name, lastModified: Date.now() };
+                if (existing >= 0) index[existing] = entry;
+                else index.push(entry);
+                saveLeagueIndex(index);
+                return true;
+            } catch (e) {
+                console.warn('Could not save league:', e);
+                return false;
+            }
+        };
+
+        const deleteLeague = (id) => {
+            try { localStorage.removeItem(LEAGUE_PREFIX + id); } catch {}
+            const index = loadLeagueIndex().filter(e => e.id !== id);
+            saveLeagueIndex(index);
+        };
+
+        // Export/Import helpers
+        const exportLeagueJSON = (league) => {
+            const blob = new Blob([JSON.stringify(league, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${league.name || 'league'}_league.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        const importLeagueJSON = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => { try { resolve(JSON.parse(e.target.result)); } catch { reject(new Error('Invalid JSON')); } };
+            reader.onerror = () => reject(new Error('File read error'));
+            reader.readAsText(file);
+        });
+
+        const resizeImage = (file, maxSize = 128) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+                    const w = Math.round(img.width * scale);
+                    const h = Math.round(img.height * scale);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.onerror = () => reject(new Error('Image load error'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('File read error'));
+            reader.readAsDataURL(file);
+        });
+
+        // ==========================================
+        // 3. DATA LOADER COMPONENT
         // ==========================================
         const DataLoader = ({ onLoad }) => {
             const fileRef = useRef(null);
@@ -169,29 +303,132 @@
         };
 
         // ==========================================
+        // 6. LEAGUE SELECTOR COMPONENT
+        // ==========================================
+        const LeagueSelector = ({ gameData, onSelect, onCreate }) => {
+            const [leagues, setLeagues] = useState(() => loadLeagueIndex());
+            const importRef = useRef(null);
+            const handleImport = async (e) => {
+                const file = e.target.files[0]; if (!file) return;
+                try {
+                    const league = await importLeagueJSON(file);
+                    if (!league.id) league.id = generateUUID();
+                    saveLeague(league);
+                    onSelect(league);
+                } catch { alert('Invalid league file'); }
+            };
+            const handleDelete = (id, name) => {
+                if (!confirm(`Delete league "${name}"?`)) return;
+                deleteLeague(id);
+                setLeagues(loadLeagueIndex());
+            };
+            return (
+                <div className="h-full flex items-center justify-center" style={{background:'var(--leather)'}}>
+                    <div className="p-8 rounded-lg max-w-md w-full" style={{background:'var(--paper)', border:'2px solid var(--border)'}}>
+                        <h1 className="text-2xl font-bold brand-font mb-6 text-center" style={{color:'var(--crimson)'}}>LEAGUE DOSSIERS</h1>
+                        {leagues.length > 0 && (
+                            <div className="mb-6 max-h-64 overflow-y-auto">
+                                {leagues.sort((a,b) => b.lastModified - a.lastModified).map(entry => (
+                                    <div key={entry.id} className="flex items-center gap-2 mb-2">
+                                        <button onClick={() => onSelect(loadLeague(entry.id))}
+                                            className="flex-1 text-left p-3 rounded cursor-pointer transition-opacity hover:opacity-80"
+                                            style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                                            <div className="font-bold brand-font" style={{color:'var(--ink)'}}>{entry.name}</div>
+                                            <div className="text-xs typewriter" style={{color:'var(--ink-faded)'}}>
+                                                {new Date(entry.lastModified).toLocaleDateString()}
+                                            </div>
+                                        </button>
+                                        <button onClick={() => handleDelete(entry.id, entry.name)}
+                                            className="p-2 rounded cursor-pointer hover:opacity-80" style={{color:'var(--crimson)'}}>
+                                            <Icons.Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <div className="flex gap-3">
+                            <button onClick={onCreate} className="flex-1 px-4 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>New League</button>
+                            <input ref={importRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+                            <button onClick={() => importRef.current.click()} className="flex-1 px-4 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>Import</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
         // 7. APP INIT
         // ==========================================
         const App = () => {
             const [gameData, setGameData] = useState(null);
+            const [league, setLeague] = useState(null);
+            const [showLeagueSelector, setShowLeagueSelector] = useState(true);
+            const [activeView, setActiveView] = useState('roster');
+            const [selectedCharId, setSelectedCharId] = useState(null);
+            const [toast, setToast] = useState(null);
+
+            const showToast = (msg, type='info') => { setToast({msg, type}); setTimeout(() => setToast(null), 3000); };
+
+            // Auto-save on league change
+            useEffect(() => {
+                if (league) {
+                    if (!saveLeague(league)) showToast('Storage full — export as JSON to free space', 'error');
+                }
+            }, [league]);
+
+            const updateLeague = useCallback((updater) => {
+                setLeague(prev => typeof updater === 'function' ? updater(prev) : updater);
+            }, []);
 
             if (!gameData) return <DataLoader onLoad={setGameData} />;
+            if (showLeagueSelector || !league) return <LeagueSelector gameData={gameData} onSelect={(l) => { setLeague(l); setShowLeagueSelector(false); }} onCreate={() => { const l = EMPTY_LEAGUE(); setLeague(l); setShowLeagueSelector(false); }} />;
 
             return (
                 <div className="h-full flex flex-col" style={{background:'var(--paper)'}}>
-                    <div className="p-3 flex items-center justify-between" style={{background:'var(--leather)',borderBottom:'3px solid var(--crimson)'}}>
-                        <div className="flex items-center gap-2">
+                    {/* TopBar placeholder */}
+                    <div className="p-2 flex items-center justify-between no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => { setShowLeagueSelector(true); setSelectedCharId(null); }} className="cursor-pointer" style={{color:'var(--paper)'}}>
+                                <Icons.ArrowLeft size={18} />
+                            </button>
                             <span className="typewriter text-sm tracking-widest" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>
                         </div>
-                        <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>
-                            {gameData.abilities.level1.length + gameData.abilities.level2.length + gameData.abilities.level3.length + gameData.abilities.level4.length} abilities loaded
-                        </span>
-                    </div>
-                    <div className="flex-1 flex items-center justify-center">
-                        <div className="text-center p-8">
-                            <p className="typewriter" style={{color:'var(--ink)'}}>Data loaded successfully.</p>
-                            <p className="typewriter text-sm mt-2" style={{color:'var(--ink-faded)'}}>League builder coming in next tasks.</p>
+                        <div className="flex items-center gap-2">
+                            <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
+                                className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
+                            <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
+                                <Icons.Download size={16} />
+                            </button>
+                            <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
+                                <Icons.Printer size={16} />
+                            </button>
                         </div>
                     </div>
+                    <div className="flex-1 overflow-hidden flex">
+                        {/* Sidebar placeholder */}
+                        <div className="w-60 overflow-y-auto p-3 no-print" style={{background:'var(--paper-dark)', borderRight:'2px solid var(--border)'}}>
+                            <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Field Operatives</div>
+                            {league.characters.length === 0 ? (
+                                <p className="text-xs typewriter" style={{color:'var(--ink-faded)'}}>No operatives yet</p>
+                            ) : league.characters.map(c => (
+                                <div key={c.id} onClick={() => { setSelectedCharId(c.id); setActiveView('character'); }}
+                                    className="p-2 mb-2 rounded cursor-pointer"
+                                    style={{background:'var(--paper)', border: selectedCharId === c.id ? '2px solid var(--crimson)' : '1px solid var(--border)', borderLeft: `3px solid ${LEVEL_COLORS[c.type]}`}}>
+                                    <div className="typewriter text-xs uppercase" style={{color: LEVEL_COLORS[c.type]}}>{LEVEL_LABELS[c.type]}</div>
+                                    <div className="brand-font text-sm font-bold" style={{color:'var(--ink)'}}>{c.name || 'Unnamed'}</div>
+                                </div>
+                            ))}
+                        </div>
+                        {/* Center panel placeholder */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <p className="typewriter" style={{color:'var(--ink)'}}>
+                                {activeView} view — {league.characters.length} characters
+                            </p>
+                        </div>
+                    </div>
+                    {toast && <div className="fixed top-4 right-4 px-4 py-2 rounded shadow-lg typewriter text-sm toast" style={{background: toast.type==='error'?'var(--crimson)':'var(--leather)', color:'var(--paper)'}}>{toast.msg}</div>}
                 </div>
             );
         };
