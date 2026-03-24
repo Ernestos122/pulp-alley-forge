@@ -146,7 +146,7 @@
             id: generateUUID(),
             name: '',
             type,
-            level: type,
+            level: template?.level || {leader:4,sidekick:3,ally:2,follower:1,gang:2,epic:4}[type] || 1,
             image: null,
             skillAssignments: Object.fromEntries(
                 ['Brawl','Shoot','Dodge','Might','Finesse','Cunning'].map(s => [s, {count: null, diceType: null}])
@@ -1427,14 +1427,10 @@
 
             const checkPrereqs = (perk) => {
                 const reasons = [];
-                if (perk.prerequisite) {
-                    if (perk.prerequisite.type === 'perk' && !league.perks.includes(perk.prerequisite.name)) {
-                        reasons.push(`Requires perk: ${perk.prerequisite.name}`);
-                    }
-                    if (perk.prerequisite.type === 'reputation') {
-                        const rep = league.campaignState?.reputation || 0;
-                        if (rep < perk.prerequisite.min) reasons.push(`Requires ${perk.prerequisite.min}+ reputation`);
-                    }
+                if (perk.prerequisites && perk.prerequisites.length > 0) {
+                    perk.prerequisites.forEach(prereq => {
+                        if (!league.perks.includes(prereq)) reasons.push(`Requires perk: ${prereq}`);
+                    });
                 }
                 if (perk.incompatibleWith) {
                     perk.incompatibleWith.forEach(inc => {
