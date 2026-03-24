@@ -555,17 +555,25 @@
             });
         };
 
-        const finalizeSkills = (skills) => {
+        const finalizeSkills = (skills, genre) => {
+            // Genre: find the max dice type cap (e.g., Westerns "Gritty" caps at d8)
+            const genreMaxDice = genre?.modifiers?.find(m => m.name === 'Gritty') ? 'd8' : null;
+
             SKILLS.forEach(skill => {
                 const s = skills[skill];
                 if (s.noDice) {
                     s.finalCount = 0; s.finalDiceType = 'no-dice'; s.display = '\u2014';
                 } else {
                     s.finalCount = s.baseCount + s.bonusCount;
-                    const shifted = shiftDiceType(s.baseDiceType, s.diceTypeShift);
+                    let shifted = shiftDiceType(s.baseDiceType, s.diceTypeShift);
                     if (shifted === 'no-dice') {
                         s.finalDiceType = 'no-dice'; s.finalCount = 0; s.display = '\u2014';
                     } else {
+                        // Apply genre dice cap
+                        if (genreMaxDice && DICE_ORDER[shifted] > DICE_ORDER[genreMaxDice]) {
+                            shifted = genreMaxDice;
+                            s.annotations.push(`Capped at ${genreMaxDice} (Gritty)`);
+                        }
                         s.finalDiceType = shifted;
                         s.display = `${s.finalCount}${s.finalDiceType}`;
                     }
@@ -573,11 +581,11 @@
             });
         };
 
-        const computeCharacterSkills = (character, gameData) => {
+        const computeCharacterSkills = (character, gameData, genre) => {
             const template = getTemplate(gameData, character.type);
             if (!template) return null;
 
-            if (character.type === 'gang') return computeGangSkills(character, gameData);
+            if (character.type === 'gang') return computeGangSkills(character, gameData, genre);
 
             const skills = {};
             SKILLS.forEach(skill => {
@@ -590,11 +598,11 @@
             });
 
             applyAbilityEffects(skills, [...character.abilities, ...character.freeAbilities], character, gameData);
-            finalizeSkills(skills);
+            finalizeSkills(skills, genre);
             return skills;
         };
 
-        const computeGangSkills = (character, gameData) => {
+        const computeGangSkills = (character, gameData, genre) => {
             const models = character.gangModels || 5;
             const combatDice = Math.ceil(models / 2);
             const skills = {};
@@ -608,31 +616,54 @@
             });
 
             applyAbilityEffects(skills, [...character.abilities, ...character.freeAbilities], character, gameData);
-            finalizeSkills(skills);
+            finalizeSkills(skills, genre);
             return skills;
         };
 
         // ==========================================
         // 5b. TOPBAR COMPONENT
         // ==========================================
-        const TopBar = ({ league, updateLeague, onBack }) => (
-            <div className="p-2 flex items-center justify-between no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
-                <div className="flex items-center gap-3">
-                    <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)'}}>
-                        <Icons.ArrowLeft size={18} />
-                    </button>
-                    <span className="typewriter text-sm tracking-widest hidden sm:inline" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>
+        const TopBar = ({ league, updateLeague, onBack, gameData }) => (
+            <div className="no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
+                <div className="p-2 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)'}}>
+                            <Icons.ArrowLeft size={18} />
+                        </button>
+                        <span className="typewriter text-sm tracking-widest hidden sm:inline" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
+                            className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
+                        <select
+                            value={league.genre || ''}
+                            onChange={(e) => updateLeague(l => ({...l, genre: e.target.value || null}))}
+                            className="typewriter text-xs px-2 py-1 rounded cursor-pointer outline-none"
+                            style={{background:'var(--ink)', color:'var(--paper)', border:'1px solid var(--ink-faded)'}}>
+                            <option value="">Classic Pulp</option>
+                            {(gameData?.genres || []).map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
+                        </select>
+                        <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
+                            <Icons.Download size={16} />
+                        </button>
+                        <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
+                            <Icons.Printer size={16} />
+                        </button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
-                        className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
-                    <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
-                        <Icons.Download size={16} />
-                    </button>
-                    <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
-                        <Icons.Printer size={16} />
-                    </button>
-                </div>
+                {league.genre && (() => {
+                    const genre = (gameData?.genres || []).find(g => g.name === league.genre);
+                    if (!genre) return null;
+                    return (
+                        <div className="px-3 pb-2 flex flex-wrap gap-2">
+                            {(genre.modifiers || []).map(mod => (
+                                <span key={mod.name} className="typewriter text-xs px-2 py-0.5 rounded" style={{background:'rgba(139,26,26,0.3)', color:'var(--paper)', border:'1px solid rgba(139,26,26,0.5)'}}>
+                                    {mod.name}: <span style={{color:'var(--border)'}}>{mod.description.length > 60 ? mod.description.slice(0,60) + '...' : mod.description}</span>
+                                </span>
+                            ))}
+                        </div>
+                    );
+                })()}
             </div>
         );
 
@@ -824,7 +855,7 @@
         // 5e. CHARACTER EDITOR — SKILL ASSIGNMENT
         // ==========================================
 
-        const SkillAssignmentGrid = ({ character, gameData, onUpdate }) => {
+        const SkillAssignmentGrid = ({ character, gameData, onUpdate, league }) => {
             const template = getTemplate(gameData, character.type);
             if (!template) return null;
 
@@ -832,9 +863,12 @@
             const isAlly = character.type === 'ally';
             const isGang = character.type === 'gang';
 
+            // Resolve active genre for skill computation
+            const activeGenre = league?.genre ? (gameData?.genres || []).find(g => g.name === league.genre) : null;
+
             // Gang has special rules — no skill assignment
             if (isGang) {
-                const skills = computeCharacterSkills(character, gameData);
+                const skills = computeCharacterSkills(character, gameData, activeGenre);
                 if (!skills) return null;
                 return (
                     <div className="mb-6">
@@ -925,7 +959,7 @@
             };
 
             // Compute final skills for display
-            const computed = computeCharacterSkills(character, gameData);
+            const computed = computeCharacterSkills(character, gameData, activeGenre);
 
             // Pool summary
             const countPoolSummary = countOptions.length > 0
@@ -1388,7 +1422,7 @@
                     )}
 
                     {/* Skill Assignment */}
-                    <SkillAssignmentGrid character={character} gameData={gameData} onUpdate={onUpdate} />
+                    <SkillAssignmentGrid character={character} gameData={gameData} onUpdate={onUpdate} league={league} />
 
                     {/* Ability Picker */}
                     <AbilityPicker character={character} gameData={gameData} onUpdate={onUpdate} />
@@ -1649,6 +1683,7 @@
             const totalSlots = getTotalSlots(league, gameData);
             const usedSlots = getUsedSlots(league, gameData);
             const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
+            const activeGenre = league.genre ? (gameData?.genres || []).find(g => g.name === league.genre) : null;
 
             return (
                 <div className="print-only" style={{fontFamily:'Georgia, serif', color:'#000', background:'#fff', padding:'16px'}}>
@@ -1657,14 +1692,20 @@
                         <h1 style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'28px', fontWeight:'bold', margin:'0 0 4px 0'}}>{league.name}</h1>
                         <div style={{fontSize:'12px', fontFamily:'Special Elite, monospace'}}>
                             Slots: {usedSlots}/{totalSlots}
+                            {league.genre && <span> | Genre: {league.genre}</span>}
                             {league.perks.length > 0 && <span> | Perks: {league.perks.join(', ')}</span>}
                         </div>
+                        {activeGenre && (
+                            <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace', marginTop:'4px', color:'#555'}}>
+                                Genre Rules: {activeGenre.modifiers.map(m => m.name).join(', ')}
+                            </div>
+                        )}
                     </div>
 
                     {/* Character Cards */}
                     {league.characters.map(character => {
                         const template = getTemplate(gameData, character.type);
-                        const skills = computeCharacterSkills(character, gameData);
+                        const skills = computeCharacterSkills(character, gameData, activeGenre);
                         return (
                             <div key={character.id} className="print-card" style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', marginBottom:'16px', padding:'12px', background:'#fff'}}>
                                 <div style={{display:'flex', alignItems:'flex-start', gap:'12px', marginBottom:'8px'}}>
@@ -1941,7 +1982,7 @@
 
             return (
                 <div className="h-full flex flex-col" style={{background:'var(--paper)'}}>
-                    <TopBar league={league} updateLeague={updateLeague} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); }} />
+                    <TopBar league={league} updateLeague={updateLeague} gameData={gameData} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); }} />
 
                     <div className="flex-1 overflow-hidden flex no-print">
                         <RosterSidebar
