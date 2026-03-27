@@ -2730,7 +2730,8 @@
                 return template.health;
             };
 
-            const CardSt = { card: { breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #3b2a1a', borderRadius:'6px', background:'linear-gradient(145deg, #d4c5a9, #c4b48e)', padding:'0', overflow:'hidden', width:'48%', minHeight:'280px', display:'flex', flexDirection:'column', fontFamily:'Special Elite, monospace', fontSize:'11px', color:'#2a1f0e', boxShadow:'1px 1px 3px rgba(0,0,0,0.2)' } };
+            // MTG card size: 63mm × 88mm (2.5" × 3.5")
+            const CardSt = { card: { breakInside:'avoid', pageBreakInside:'avoid', border:'1.5px solid #3b2a1a', borderRadius:'4px', background:'linear-gradient(145deg, #d4c5a9, #c4b48e)', padding:'0', overflow:'hidden', width:'63mm', height:'88mm', display:'flex', flexDirection:'column', fontFamily:'Special Elite, monospace', fontSize:'8px', color:'#2a1f0e', boxShadow:'1px 1px 2px rgba(0,0,0,0.2)', boxSizing:'border-box' } };
 
             return (
                 <div className="print-only" style={{fontFamily:'Georgia, serif', color:'#000', background:'#fff', padding:'8px'}}>
@@ -2749,7 +2750,7 @@
                     </div>
 
                     {/* Character Cards — 2 per row */}
-                    <div style={{display:'flex', flexWrap:'wrap', gap:'12px', justifyContent:'flex-start'}}>
+                    <div style={{display:'flex', flexWrap:'wrap', gap:'4mm', justifyContent:'flex-start'}}>
                         {league.characters.map(character => {
                             const template = getTemplate(gameData, character.type);
                             const skills = computeCharacterSkills(character, gameData, activeGenre, league?.optionalRules, league);
@@ -2768,46 +2769,44 @@
                             return (
                                 <div key={character.id} style={CardSt.card}>
                                     {/* Card Top: Type + Name */}
-                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 8px', borderBottom:'1px solid #a89060', background:'rgba(59,47,30,0.08)'}}>
-                                        <span style={{fontWeight:'bold', fontSize:'10px', textTransform:'uppercase', letterSpacing:'1px', color:'#8b1a1a'}}>
+                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'3px 5px', borderBottom:'1px solid #a89060', background:'rgba(59,47,30,0.08)'}}>
+                                        <span style={{fontWeight:'bold', fontSize:'7px', textTransform:'uppercase', letterSpacing:'0.5px', color:'#8b1a1a'}}>
                                             {LEVEL_LABELS[character.type]}{isActingLeader ? ' (Leader)' : ''}:
                                         </span>
-                                        <span style={{fontFamily:'Playfair Display, Georgia, serif', fontWeight:'bold', fontSize:'14px'}}>{character.name || 'Unnamed'}</span>
+                                        <span style={{fontFamily:'Playfair Display, Georgia, serif', fontWeight:'bold', fontSize:'10px'}}>{character.name || 'Unnamed'}</span>
                                     </div>
 
                                     {/* Card Body: Image + Skills */}
-                                    <div style={{display:'flex', flex:1, padding:'6px 8px', gap:'8px'}}>
+                                    <div style={{display:'flex', padding:'4px 5px', gap:'4px'}}>
                                         {/* Left: Image */}
-                                        <div style={{width:'90px', flexShrink:0}}>
+                                        <div style={{width:'22mm', flexShrink:0}}>
                                             {character.image ? (
-                                                <img src={character.image} style={{width:'90px', height:'90px', objectFit:'cover', borderRadius:'4px', border:'1px solid #a89060'}} />
+                                                <img src={character.image} style={{width:'22mm', height:'22mm', objectFit:'cover', borderRadius:'3px', border:'1px solid #a89060'}} />
                                             ) : (
-                                                <div style={{width:'90px', height:'90px', borderRadius:'4px', border:'1px solid #a89060', background:'rgba(168,144,96,0.2)', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a89060" strokeWidth="1" strokeLinecap="round"><circle cx="12" cy="8" r="5"/><path d="M3 21c0-4.97 4.03-9 9-9s9 4.03 9 9"/></svg>
+                                                <div style={{width:'22mm', height:'22mm', borderRadius:'3px', border:'1px solid #a89060', background:'rgba(168,144,96,0.2)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a89060" strokeWidth="1" strokeLinecap="round"><circle cx="12" cy="8" r="5"/><path d="M3 21c0-4.97 4.03-9 9-9s9 4.03 9 9"/></svg>
                                                 </div>
                                             )}
-                                            {/* Weapon */}
-                                            {character.weapon && <div style={{fontSize:'9px', color:'#5a4a2e', marginTop:'3px', fontStyle:'italic'}}>{character.weapon}</div>}
                                             {/* Gang models */}
-                                            {character.type === 'gang' && <div style={{fontSize:'9px', color:'#5a4a2e', marginTop:'3px'}}>Models: {character.gangModels || 5}</div>}
+                                            {character.type === 'gang' && <div style={{fontSize:'7px', color:'#5a4a2e', marginTop:'2px', textAlign:'center'}}>Models: {character.gangModels || 5}</div>}
                                         </div>
 
                                         {/* Right: Skills */}
                                         {skills && (
                                             <div style={{flex:1}}>
                                                 {/* Combat Skills — red/salmon */}
-                                                <div style={{background:'rgba(180,80,60,0.15)', border:'1px solid rgba(180,80,60,0.3)', borderRadius:'3px', padding:'4px 6px', marginBottom:'4px'}}>
+                                                <div style={{background:'rgba(180,80,60,0.15)', border:'1px solid rgba(180,80,60,0.3)', borderRadius:'2px', padding:'2px 4px', marginBottom:'2px'}}>
                                                     {COMBAT_SKILLS.map(skill => (
-                                                        <div key={skill} style={{display:'flex', justifyContent:'space-between', padding:'1px 0'}}>
+                                                        <div key={skill} style={{display:'flex', justifyContent:'space-between', padding:'0.5px 0', fontSize:'8px'}}>
                                                             <span style={{fontWeight:'bold', color:'#6b2a1a'}}>{skill}</span>
                                                             <span style={{fontWeight:'bold'}}>{skills[skill]?.display || '\u2014'}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                                 {/* Action Skills — green */}
-                                                <div style={{background:'rgba(60,120,60,0.12)', border:'1px solid rgba(60,120,60,0.25)', borderRadius:'3px', padding:'4px 6px'}}>
+                                                <div style={{background:'rgba(60,120,60,0.12)', border:'1px solid rgba(60,120,60,0.25)', borderRadius:'2px', padding:'2px 4px'}}>
                                                     {ACTION_SKILLS.map(skill => (
-                                                        <div key={skill} style={{display:'flex', justifyContent:'space-between', padding:'1px 0'}}>
+                                                        <div key={skill} style={{display:'flex', justifyContent:'space-between', padding:'0.5px 0', fontSize:'8px'}}>
                                                             <span style={{fontWeight:'bold', color:'#2a5a2a'}}>{skill}</span>
                                                             <span style={{fontWeight:'bold'}}>{skills[skill]?.display || '\u2014'}</span>
                                                         </div>
@@ -2817,11 +2816,23 @@
                                         )}
                                     </div>
 
+                                    {/* Weapon — if equipped */}
+                                    {character.weapon && (() => {
+                                        const allWeapons = [...(gameData.weapons?.ranged||[]).map(w=>({...w,group:'Ranged'})), ...(gameData.weapons?.melee||[]).map(w=>({...w,group:'Melee'}))];
+                                        const wpn = allWeapons.find(w => w.name === character.weapon);
+                                        return (
+                                            <div style={{padding:'2px 5px', borderTop:'1px solid #a89060', fontSize:'7px', background:'rgba(139,26,26,0.05)'}}>
+                                                <span style={{fontWeight:'bold', color:'#8b1a1a'}}>{character.weapon}</span>
+                                                {wpn && <span style={{color:'#5a4a2e'}}> ({wpn.group}): {wpn.description}</span>}
+                                            </div>
+                                        );
+                                    })()}
+
                                     {/* Abilities Section */}
-                                    <div style={{padding:'4px 8px', flex:1, borderTop:'1px solid #a89060', fontSize:'9px', lineHeight:'1.3'}}>
+                                    <div style={{padding:'2px 5px', flex:1, borderTop:'1px solid #a89060', fontSize:'7px', lineHeight:'1.25', overflow:'hidden'}}>
                                         {abDetails.length > 0 ? abDetails.map(ab => (
-                                            <div key={ab.name} style={{marginBottom:'2px'}}>
-                                                <span style={{fontWeight:'bold'}}>{ab.flavour ? `${ab.flavour}` : ab.name}</span>
+                                            <div key={ab.name} style={{marginBottom:'1px'}}>
+                                                <span style={{fontWeight:'bold'}}>{ab.flavour ? ab.flavour : ab.name}</span>
                                                 {ab.flavour && <span style={{color:'#7a6a4e'}}> ({ab.name})</span>}
                                                 {ab.isFree && <span style={{color:'#2a6e5a'}}> [free]</span>}
                                                 : <span style={{color:'#5a4a2e'}}>{ab.description}</span>
@@ -2833,16 +2844,15 @@
 
                                     {/* Health Track — bottom bar */}
                                     {healthTrack.length > 0 && (
-                                        <div style={{display:'flex', alignItems:'center', borderTop:'2px solid #3b2a1a', background:'rgba(59,47,30,0.1)'}}>
-                                            <span style={{padding:'4px 6px', fontWeight:'bold', fontSize:'10px', color:'#8b1a1a', whiteSpace:'nowrap'}}>Health:</span>
+                                        <div style={{display:'flex', alignItems:'center', borderTop:'1.5px solid #3b2a1a', background:'rgba(59,47,30,0.1)', marginTop:'auto'}}>
+                                            <span style={{padding:'2px 4px', fontWeight:'bold', fontSize:'7px', color:'#8b1a1a', whiteSpace:'nowrap'}}>Health:</span>
                                             <div style={{display:'flex', flex:1}}>
                                                 {healthTrack.map((state, i) => {
                                                     const isDown = state === 'Down';
                                                     const isOut = state === 'Out';
-                                                    const isDie = !isDown && !isOut;
                                                     return (
                                                         <div key={i} style={{
-                                                            flex:1, textAlign:'center', padding:'4px 2px', fontSize:'10px', fontWeight:'bold',
+                                                            flex:1, textAlign:'center', padding:'2px 1px', fontSize:'7px', fontWeight:'bold',
                                                             borderLeft: i > 0 ? '1px solid #a89060' : 'none',
                                                             color: isOut ? '#8b1a1a' : isDown ? '#8b6914' : '#2a1f0e',
                                                             background: isOut ? 'rgba(139,26,26,0.1)' : isDown ? 'rgba(139,105,20,0.1)' : 'transparent',
