@@ -77,20 +77,28 @@
 
         /* Mobile responsive */
         @media (max-width: 768px) {
-            .desktop-sidebar { display: none; }
+            .desktop-sidebar {
+                display: none !important;
+            }
             .desktop-sidebar.mobile-open {
-                display: flex; flex-direction: column;
-                position: fixed; inset: 0; z-index: 40;
-                width: 100%; max-width: 100%;
-                border-right: none;
+                display: flex !important;
+                flex-direction: column;
+                position: fixed;
+                top: 0; left: 0; bottom: 0;
+                z-index: 40;
+                width: 85vw !important;
+                max-width: 320px;
+                border-right: 3px solid var(--crimson) !important;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.4);
             }
             .mobile-sidebar-overlay {
                 position: fixed; inset: 0; z-index: 39;
                 background: rgba(0,0,0,0.5);
             }
-            .topbar-controls { flex-wrap: wrap; gap: 4px; }
-            .topbar-name { width: 140px !important; font-size: 12px !important; }
+            .topbar-row2 { display: flex !important; }
+            .topbar-name { width: 120px !important; font-size: 12px !important; }
             .topbar-title { display: none !important; }
+            .topbar-desktop-toggles { display: none !important; }
             .mobile-menu-btn { display: flex !important; }
             .center-panel { padding: 12px !important; }
             .modal-content { max-width: 95vw !important; max-height: 90vh !important; overflow-y: auto !important; }
@@ -98,6 +106,7 @@
         @media (min-width: 769px) {
             .mobile-menu-btn { display: none !important; }
             .mobile-sidebar-overlay { display: none !important; }
+            .topbar-row2 { display: none !important; }
         }
     </style>
 </head>
@@ -725,71 +734,60 @@
         // ==========================================
         const TopBar = ({ league, updateLeague, onBack, gameData, onToggleMobileSidebar }) => (
             <div className="no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
-                <div className="p-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                {/* Row 1: Always visible — back, menu, name, export, print */}
+                <div className="p-2 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)'}}>
                             <Icons.ArrowLeft size={18} />
                         </button>
-                        {/* Mobile menu button */}
-                        <button onClick={onToggleMobileSidebar} className="mobile-menu-btn cursor-pointer hover:opacity-80 p-1 rounded" style={{color:'var(--paper)', background:'rgba(139,26,26,0.3)', border:'1px solid var(--crimson)'}}>
+                        <button onClick={onToggleMobileSidebar} className="mobile-menu-btn cursor-pointer hover:opacity-80 p-1.5 rounded" style={{color:'var(--paper)', background:'rgba(139,26,26,0.4)', border:'1px solid var(--crimson)'}}>
                             <Icons.Users size={18} />
                         </button>
                         <span className="topbar-title typewriter text-sm tracking-widest" style={{color:'var(--crimson)'}}>PULP ALLEY</span>
                     </div>
-                    <div className="topbar-controls flex items-center gap-2">
+                    <div className="flex items-center gap-1 flex-1 justify-end min-w-0">
                         <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
-                            className="topbar-name bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
-                        <select
-                            value={league.genre || ''}
-                            onChange={(e) => updateLeague(l => ({...l, genre: e.target.value || null}))}
-                            className="typewriter text-xs px-2 py-1 rounded cursor-pointer outline-none"
-                            style={{background:'var(--ink)', color:'var(--paper)', border:'1px solid var(--ink-faded)'}}>
-                            <option value="">Classic Pulp</option>
-                            {(gameData?.genres || []).map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
-                        </select>
-                        <button
-                            onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), weapons: !l.optionalRules?.weapons}}))}
-                            title="Weapons optional rule: characters may equip weapons"
-                            className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all"
-                            style={{
-                                background: league.optionalRules?.weapons ? 'var(--crimson)' : 'var(--ink)',
-                                color: 'var(--paper)',
-                                border: league.optionalRules?.weapons ? '1px solid var(--crimson)' : '1px solid var(--ink-faded)',
-                            }}>
-                            Weapons
-                        </button>
-                        <button
-                            onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), supers: !l.optionalRules?.supers}}))}
-                            title="Supers optional rule: allows Epic characters"
-                            className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all"
-                            style={{
-                                background: league.optionalRules?.supers ? 'var(--crimson)' : 'var(--ink)',
-                                color: 'var(--paper)',
-                                border: league.optionalRules?.supers ? '1px solid var(--crimson)' : '1px solid var(--ink-faded)',
-                            }}>
-                            Supers
-                        </button>
-                        <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
+                            className="topbar-name bg-transparent border-b typewriter text-sm px-1 outline-none min-w-0" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
+                        <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1.5 rounded hover:opacity-80 flex-shrink-0" style={{color:'var(--paper)'}} title="Export JSON">
                             <Icons.Download size={16} />
                         </button>
-                        <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
+                        <button onClick={() => window.print()} className="cursor-pointer p-1.5 rounded hover:opacity-80 flex-shrink-0" style={{color:'var(--paper)'}} title="Print">
                             <Icons.Printer size={16} />
                         </button>
                     </div>
                 </div>
-                {league.genre && (() => {
-                    const genre = (gameData?.genres || []).find(g => g.name === league.genre);
-                    if (!genre) return null;
-                    return (
-                        <div className="px-3 pb-2 flex flex-wrap gap-2">
-                            {(genre.modifiers || []).map(mod => (
-                                <span key={mod.name} className="typewriter text-xs px-2 py-0.5 rounded" style={{background:'rgba(139,26,26,0.3)', color:'var(--paper)', border:'1px solid rgba(139,26,26,0.5)'}}>
-                                    {mod.name}: <span style={{color:'var(--border)'}}>{mod.description.length > 60 ? mod.description.slice(0,60) + '...' : mod.description}</span>
-                                </span>
-                            ))}
-                        </div>
-                    );
-                })()}
+                {/* Row 2: Desktop — genre + toggles. On mobile these are in Settings panel */}
+                <div className="topbar-desktop-toggles px-2 pb-2 flex items-center gap-2 flex-wrap">
+                    <select
+                        value={league.genre || ''}
+                        onChange={(e) => updateLeague(l => ({...l, genre: e.target.value || null}))}
+                        className="typewriter text-xs px-2 py-1 rounded cursor-pointer outline-none"
+                        style={{background:'var(--ink)', color:'var(--paper)', border:'1px solid var(--ink-faded)'}}>
+                        <option value="">Classic Pulp</option>
+                        {(gameData?.genres || []).map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
+                    </select>
+                    <button
+                        onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), weapons: !l.optionalRules?.weapons}}))}
+                        className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80"
+                        style={{background: league.optionalRules?.weapons ? 'var(--crimson)' : 'var(--ink)', color:'var(--paper)', border: league.optionalRules?.weapons ? '1px solid var(--crimson)' : '1px solid var(--ink-faded)'}}>
+                        Weapons
+                    </button>
+                    <button
+                        onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), supers: !l.optionalRules?.supers}}))}
+                        className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80"
+                        style={{background: league.optionalRules?.supers ? 'var(--crimson)' : 'var(--ink)', color:'var(--paper)', border: league.optionalRules?.supers ? '1px solid var(--crimson)' : '1px solid var(--ink-faded)'}}>
+                        Supers
+                    </button>
+                    {league.genre && (() => {
+                        const genre = (gameData?.genres || []).find(g => g.name === league.genre);
+                        if (!genre || !genre.modifiers?.length) return null;
+                        return genre.modifiers.map(mod => (
+                            <span key={mod.name} className="typewriter text-xs px-2 py-0.5 rounded" style={{background:'rgba(139,26,26,0.3)', color:'var(--paper)', border:'1px solid rgba(139,26,26,0.5)'}}>
+                                {mod.name}
+                            </span>
+                        ));
+                    })()}
+                </div>
             </div>
         );
 
