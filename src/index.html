@@ -74,6 +74,31 @@
             to { transform: translateY(0); opacity: 1; }
         }
         .toast { animation: slideIn 0.3s ease-out; }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .desktop-sidebar { display: none; }
+            .desktop-sidebar.mobile-open {
+                display: flex; flex-direction: column;
+                position: fixed; inset: 0; z-index: 40;
+                width: 100%; max-width: 100%;
+                border-right: none;
+            }
+            .mobile-sidebar-overlay {
+                position: fixed; inset: 0; z-index: 39;
+                background: rgba(0,0,0,0.5);
+            }
+            .topbar-controls { flex-wrap: wrap; gap: 4px; }
+            .topbar-name { width: 140px !important; font-size: 12px !important; }
+            .topbar-title { display: none !important; }
+            .mobile-menu-btn { display: flex !important; }
+            .center-panel { padding: 12px !important; }
+            .modal-content { max-width: 95vw !important; max-height: 90vh !important; overflow-y: auto !important; }
+        }
+        @media (min-width: 769px) {
+            .mobile-menu-btn { display: none !important; }
+            .mobile-sidebar-overlay { display: none !important; }
+        }
     </style>
 </head>
 <body class="h-screen overflow-hidden">
@@ -698,18 +723,22 @@
         // ==========================================
         // 5b. TOPBAR COMPONENT
         // ==========================================
-        const TopBar = ({ league, updateLeague, onBack, gameData }) => (
+        const TopBar = ({ league, updateLeague, onBack, gameData, onToggleMobileSidebar }) => (
             <div className="no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
                 <div className="p-2 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)'}}>
                             <Icons.ArrowLeft size={18} />
                         </button>
-                        <span className="typewriter text-sm tracking-widest hidden sm:inline" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>
+                        {/* Mobile menu button */}
+                        <button onClick={onToggleMobileSidebar} className="mobile-menu-btn cursor-pointer hover:opacity-80 p-1 rounded" style={{color:'var(--paper)', background:'rgba(139,26,26,0.3)', border:'1px solid var(--crimson)'}}>
+                            <Icons.Users size={18} />
+                        </button>
+                        <span className="topbar-title typewriter text-sm tracking-widest" style={{color:'var(--crimson)'}}>PULP ALLEY</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="topbar-controls flex items-center gap-2">
                         <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
-                            className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
+                            className="topbar-name bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
                         <select
                             value={league.genre || ''}
                             onChange={(e) => updateLeague(l => ({...l, genre: e.target.value || null}))}
@@ -783,7 +812,7 @@
             );
         };
 
-        const RosterSidebar = ({ league, gameData, selectedCharId, onSelectChar, onOpenAddModal, activeView, onSetView }) => {
+        const RosterSidebar = ({ league, gameData, selectedCharId, onSelectChar, onOpenAddModal, activeView, onSetView, mobileSidebarOpen }) => {
             const used = getUsedSlots(league, gameData);
             const total = getTotalSlots(league, gameData);
             const leaders = league.characters.filter(c => c.type === 'leader');
@@ -837,7 +866,7 @@
             };
 
             return (
-                <div className="w-60 overflow-y-auto p-3 no-print flex flex-col" style={{background:'var(--paper-dark)', borderRight:'2px solid var(--border)'}}>
+                <div className={`w-60 overflow-y-auto p-3 no-print flex flex-col desktop-sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`} style={{background:'var(--paper-dark)', borderRight:'2px solid var(--border)'}}>
                     <SlotBar used={used} total={total} />
 
                     <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Field Operatives</div>
@@ -2994,6 +3023,7 @@
             const [showAddModal, setShowAddModal] = useState(false);
             const [activeView, setActiveView] = useState(null); // null, 'character', 'perks', 'associates', 'campaign', 'settings'
             const [toast, setToast] = useState(null);
+            const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
             const showToast = (msg, type='info') => { setToast({msg, type}); setTimeout(() => setToast(null), 3000); };
 
@@ -3094,18 +3124,25 @@
 
             return (
                 <div className="h-full flex flex-col" style={{background:'var(--paper)'}}>
-                    <TopBar league={league} updateLeague={updateLeague} gameData={gameData} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); }} />
+                    <TopBar league={league} updateLeague={updateLeague} gameData={gameData}
+                        onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); }}
+                        onToggleMobileSidebar={() => setMobileSidebarOpen(v => !v)} />
 
                     <div className="flex-1 overflow-hidden flex no-print">
+                        {/* Mobile sidebar overlay */}
+                        {mobileSidebarOpen && <div className="mobile-sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} />}
                         <RosterSidebar
                             league={league} gameData={gameData}
                             selectedCharId={selectedCharId}
-                            onSelectChar={handleSelectChar}
-                            onOpenAddModal={() => setShowAddModal(true)}
+                            onSelectChar={(id) => { handleSelectChar(id); setMobileSidebarOpen(false); }}
+                            onOpenAddModal={() => { setShowAddModal(true); setMobileSidebarOpen(false); }}
                             activeView={activeView}
-                            onSetView={handleSetView}
+                            onSetView={(v) => { handleSetView(v); setMobileSidebarOpen(false); }}
+                            mobileSidebarOpen={mobileSidebarOpen}
                         />
-                        {renderCenterPanel()}
+                        <div className="center-panel" style={{flex:1, overflow:'auto'}}>
+                            {renderCenterPanel()}
+                        </div>
                     </div>
 
                     <PrintableRoster league={league} gameData={gameData} />
