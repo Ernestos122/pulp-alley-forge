@@ -740,19 +740,19 @@
                         <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)'}}>
                             <Icons.ArrowLeft size={18} />
                         </button>
-                        <button onClick={onToggleMobileSidebar} className="mobile-menu-btn cursor-pointer hover:opacity-80 p-1.5 rounded" style={{color:'var(--paper)', background:'rgba(139,26,26,0.4)', border:'1px solid var(--crimson)'}}>
-                            <Icons.Users size={18} />
+                        <button onClick={onToggleMobileSidebar} className="mobile-menu-btn cursor-pointer hover:opacity-80 p-1.5 rounded flex items-center gap-1" style={{color:'var(--paper)', background:'rgba(139,26,26,0.4)', border:'1px solid var(--crimson)'}}>
+                            <Icons.Users size={18} /><span className="typewriter text-xs">Roster</span>
                         </button>
                         <span className="topbar-title typewriter text-sm tracking-widest" style={{color:'var(--crimson)'}}>PULP ALLEY</span>
                     </div>
                     <div className="flex items-center gap-1 flex-1 justify-end min-w-0">
                         <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
                             className="topbar-name bg-transparent border-b typewriter text-sm px-1 outline-none min-w-0" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
-                        <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1.5 rounded hover:opacity-80 flex-shrink-0" style={{color:'var(--paper)'}} title="Export JSON">
-                            <Icons.Download size={16} />
+                        <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1.5 rounded hover:opacity-80 flex-shrink-0 flex items-center gap-1" style={{color:'var(--paper)'}} title="Export JSON">
+                            <Icons.Download size={16} /><span className="typewriter text-xs">Export</span>
                         </button>
-                        <button onClick={() => window.print()} className="cursor-pointer p-1.5 rounded hover:opacity-80 flex-shrink-0" style={{color:'var(--paper)'}} title="Print">
-                            <Icons.Printer size={16} />
+                        <button onClick={() => window.print()} className="cursor-pointer p-1.5 rounded hover:opacity-80 flex-shrink-0 flex items-center gap-1" style={{color:'var(--paper)'}} title="Print">
+                            <Icons.Printer size={16} /><span className="typewriter text-xs">Print</span>
                         </button>
                     </div>
                 </div>
@@ -878,11 +878,17 @@
                         <Section title="Gangs" chars={gangs} />
 
                         <div className="mb-2 mt-3">
-                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
-                                style={{color: activeView === 'perks' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer flex items-center justify-between rounded px-1 py-0.5 transition-all"
+                                style={{
+                                    color: activeView === 'perks' ? 'var(--crimson)' : 'var(--ink-faded)',
+                                    background: activeView === 'perks' ? 'var(--paper)' : 'transparent',
+                                    borderLeft: activeView === 'perks' ? '3px solid var(--crimson)' : '3px solid transparent',
+                                }}
+                                onMouseEnter={e => { if (activeView !== 'perks') e.currentTarget.style.background = 'var(--paper)'; }}
+                                onMouseLeave={e => { if (activeView !== 'perks') e.currentTarget.style.background = 'transparent'; }}
                                 onClick={() => onSetView('perks')}>
                                 <span>Perks ({league.perks.length})</span>
-                                <Icons.Edit2 size={10} />
+                                <Icons.ChevronRight size={12} />
                             </div>
                             {league.perks.map(p => (
                                 <div key={p} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
@@ -892,11 +898,17 @@
                         </div>
 
                         <div className="mb-2 mt-3">
-                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
-                                style={{color: activeView === 'associates' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer flex items-center justify-between rounded px-1 py-0.5 transition-all"
+                                style={{
+                                    color: activeView === 'associates' ? 'var(--crimson)' : 'var(--ink-faded)',
+                                    background: activeView === 'associates' ? 'var(--paper)' : 'transparent',
+                                    borderLeft: activeView === 'associates' ? '3px solid var(--crimson)' : '3px solid transparent',
+                                }}
+                                onMouseEnter={e => { if (activeView !== 'associates') e.currentTarget.style.background = 'var(--paper)'; }}
+                                onMouseLeave={e => { if (activeView !== 'associates') e.currentTarget.style.background = 'transparent'; }}
                                 onClick={() => onSetView('associates')}>
                                 <span>Associates ({league.associates.length})</span>
-                                <Icons.Edit2 size={10} />
+                                <Icons.ChevronRight size={12} />
                             </div>
                             {league.associates.map(a => (
                                 <div key={a.id} className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
@@ -906,11 +918,17 @@
                         </div>
 
                         <div className="mb-2 mt-3">
-                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
-                                style={{color: activeView === 'campaign' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer flex items-center justify-between rounded px-1 py-0.5 transition-all"
+                                style={{
+                                    color: activeView === 'campaign' ? 'var(--crimson)' : 'var(--ink-faded)',
+                                    background: activeView === 'campaign' ? 'var(--paper)' : 'transparent',
+                                    borderLeft: activeView === 'campaign' ? '3px solid var(--crimson)' : '3px solid transparent',
+                                }}
+                                onMouseEnter={e => { if (activeView !== 'campaign') e.currentTarget.style.background = 'var(--paper)'; }}
+                                onMouseLeave={e => { if (activeView !== 'campaign') e.currentTarget.style.background = 'transparent'; }}
                                 onClick={() => onSetView('campaign')}>
                                 <span>Campaign</span>
-                                <Icons.FileText size={10} />
+                                <Icons.ChevronRight size={12} />
                             </div>
                             {league.campaignState && (league.campaignState.reputation > 0 || league.campaignState.xp > 0) && (
                                 <div className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
@@ -928,11 +946,17 @@
                             {(() => {
                                 const activeCount = Object.entries(league.optionalRules || {}).filter(([,v]) => v).length;
                                 return (
-                                    <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
-                                        style={{color: activeView === 'settings' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                                    <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer flex items-center justify-between rounded px-1 py-0.5 transition-all"
+                                        style={{
+                                            color: activeView === 'settings' ? 'var(--crimson)' : 'var(--ink-faded)',
+                                            background: activeView === 'settings' ? 'var(--paper)' : 'transparent',
+                                            borderLeft: activeView === 'settings' ? '3px solid var(--crimson)' : '3px solid transparent',
+                                        }}
+                                        onMouseEnter={e => { if (activeView !== 'settings') e.currentTarget.style.background = 'var(--paper)'; }}
+                                        onMouseLeave={e => { if (activeView !== 'settings') e.currentTarget.style.background = 'transparent'; }}
                                         onClick={() => onSetView('settings')}>
                                         <span>Settings {activeCount > 0 ? `(${activeCount})` : ''}</span>
-                                        <Icons.Edit2 size={10} />
+                                        <Icons.ChevronRight size={12} />
                                     </div>
                                 );
                             })()}
@@ -1811,8 +1835,9 @@
                             {character.image ? (
                                 <img src={character.image} className="w-24 h-24 rounded object-cover" style={{border:'2px solid var(--border)'}} />
                             ) : (
-                                <div className="w-24 h-24 rounded flex items-center justify-center" style={{background:'var(--paper-dark)', border:'2px dashed var(--border)'}}>
-                                    <Icons.Image size={28} className="" style={{color:'var(--ink-faded)'}} />
+                                <div className="w-24 h-24 rounded flex flex-col items-center justify-center gap-1" style={{background:'var(--paper-dark)', border:'2px dashed var(--border)'}}>
+                                    <Icons.Image size={22} style={{color:'var(--ink-faded)'}} />
+                                    <span className="typewriter text-center leading-tight" style={{color:'var(--ink-faded)', fontSize:'9px'}}>Click to add<br/>mini photo</span>
                                 </div>
                             )}
                         </div>
@@ -1849,8 +1874,9 @@
 
                         {/* Delete button */}
                         <button onClick={() => { if (confirm(`Delete ${character.name || 'this character'}?`)) onDelete(character.id); }}
-                            className="p-2 rounded cursor-pointer hover:opacity-70 flex-shrink-0" style={{color:'var(--crimson)'}} title="Delete character">
+                            className="p-2 rounded cursor-pointer hover:opacity-70 flex-shrink-0 flex flex-col items-center gap-0.5" style={{color:'var(--crimson)'}} title="Delete character">
                             <Icons.Trash2 size={18} />
+                            <span className="typewriter" style={{fontSize:'9px', lineHeight:'1'}}>Delete</span>
                         </button>
                     </div>
 
@@ -2921,6 +2947,24 @@
         const EmptyState = ({ league, onAddLeader, onOpenAddModal }) => {
             const hasChars = league.characters.length > 0;
             const hasLeader = league.characters.some(c => c.type === 'leader');
+            const hasSidekick = league.characters.some(c => c.type === 'sidekick');
+            const totalSlots = league.characters.reduce((acc, c) => acc + (c.type === 'leader' ? 0 : c.type === 'sidekick' ? 3 : c.type === 'ally' ? 2 : c.type === 'gang' ? 2 : c.type === 'epic' ? 5 : 1), 0);
+            const rosterFull = totalSlots >= 10;
+            const incompleteChar = hasChars ? league.characters.find(c => c.type !== 'gang' && c.type !== 'follower' && SKILLS.some(s => c.skillAssignments?.[s]?.count == null || c.skillAssignments?.[s]?.diceType == null)) : null;
+
+            let hint = null;
+            if (!hasChars) {
+                hint = 'Start by creating your Leader — every league needs one.';
+            } else if (hasLeader && !hasSidekick && !rosterFull) {
+                hint = 'Your Leader is ready! Consider adding a Sidekick (3 slots) or Allies.';
+            } else if (incompleteChar) {
+                hint = `Select "${incompleteChar.name || 'Unnamed'}" to finish assigning their skills.`;
+            } else if (rosterFull) {
+                hint = 'Your roster is complete! Review your characters or hit Print.';
+            } else {
+                hint = 'Choose a character from the sidebar to edit their dossier.';
+            }
+
             return (
                 <div className="flex-1 flex items-center justify-center p-6">
                     <div className="text-center">
@@ -2928,7 +2972,7 @@
                             <>
                                 <Icons.Users size={48} className="mx-auto mb-4" style={{color:'var(--ink-faded)'}} />
                                 <h2 className="brand-font text-xl font-bold mb-2" style={{color:'var(--ink)'}}>Assemble Your League</h2>
-                                <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>Start by creating your Leader — every league needs one.</p>
+                                <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>{hint}</p>
                                 <button onClick={onAddLeader}
                                     className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
                                     style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
@@ -2939,12 +2983,19 @@
                             <>
                                 <Icons.FileText size={48} className="mx-auto mb-4" style={{color:'var(--ink-faded)'}} />
                                 <h2 className="brand-font text-xl font-bold mb-2" style={{color:'var(--ink)'}}>Select a Character</h2>
-                                <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>Choose a character from the sidebar to edit their dossier.</p>
+                                <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>{hint}</p>
                                 {!hasLeader && (
                                     <button onClick={onAddLeader}
                                         className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
                                         style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
                                         Create Leader
+                                    </button>
+                                )}
+                                {hasLeader && !rosterFull && (
+                                    <button onClick={onOpenAddModal}
+                                        className="px-5 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80"
+                                        style={{background:'var(--leather)', color:'var(--paper)', border:'1px solid var(--border)'}}>
+                                        + Add to Roster
                                     </button>
                                 )}
                             </>
@@ -3036,7 +3087,7 @@
                 setLeague(prev => typeof updater === 'function' ? updater(prev) : updater);
             }, []);
 
-            const addCharacter = useCallback((type) => {
+            const addCharacter = useCallback((type, fromModal = false) => {
                 const tmpl = gameData ? getTemplate(gameData, type) : null;
                 const newChar = EMPTY_CHARACTER(type, tmpl ? {} : undefined);
                 // For follower, pre-fill all skills to 1d6
@@ -3051,6 +3102,10 @@
                 updateLeague(l => ({ ...l, characters: [...l.characters, newChar] }));
                 setSelectedCharId(newChar.id);
                 setActiveView('character');
+                if (fromModal) {
+                    const label = LEVEL_LABELS[type] || type;
+                    showToast(`Added ${label} — assign their skills and abilities`);
+                }
             }, [gameData, updateLeague]);
 
             const updateCharacter = useCallback((updatedChar) => {
@@ -3148,7 +3203,7 @@
                     {showAddModal && (
                         <AddCharacterModal
                             league={league} gameData={gameData}
-                            onAdd={addCharacter}
+                            onAdd={(type) => addCharacter(type, true)}
                             onClose={() => setShowAddModal(false)}
                         />
                     )}
