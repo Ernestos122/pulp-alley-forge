@@ -445,6 +445,10 @@
                 }
                 const tmpl = getTemplate(gameData, c.type);
                 if (tmpl) used += tmpl.rosterSlotCost;
+                // Mob: gang fills only 1 roster slot instead of the default 2
+                if (c.type === 'gang' && (c.abilities.includes('Mob') || c.freeAbilities?.includes('Mob'))) {
+                    used -= 1; // reduce from 2 to 1
+                }
                 // Epic characters can spend extra roster slots for additional abilities
                 if (c.type === 'epic' && c.extraAbilitySlots) used += c.extraAbilitySlots;
             });
@@ -713,6 +717,19 @@
         };
 
         const computeGangSkills = (character, gameData, genre, optionalRules) => {
+            const isMob = character.abilities.includes('Mob') || (character.freeAbilities || []).includes('Mob');
+            if (isMob) {
+                // Mob: all skills 1d6, ignore all modifiers except Fortune card effects
+                const skills = {};
+                SKILLS.forEach(skill => {
+                    skills[skill] = {
+                        baseCount: 1, baseDiceType: 'd6', bonusCount: 0, diceTypeShift: 0,
+                        noDice: false, annotations: ['Mob: 1d6 all skills'],
+                        finalCount: 1, finalDiceType: 'd6', display: '1d6',
+                    };
+                });
+                return skills;
+            }
             const models = character.gangModels || 5;
             const combatDice = Math.ceil(models / 2);
             const skills = {};
@@ -1328,7 +1345,12 @@
                         newFree = [];
                     });
                 }
-                onUpdate({ ...character, abilities: newAbilities, abilityChoices: newChoices, abilityFlavourNames: newFlavour, freeAbilities: newFree });
+                // Sixth-Man removed: reset gangModels to 5
+                const updates = { abilities: newAbilities, abilityChoices: newChoices, abilityFlavourNames: newFlavour, freeAbilities: newFree };
+                if (abilityName === 'Sixth-Man' && character.type === 'gang') {
+                    updates.gangModels = 5;
+                }
+                onUpdate({ ...character, ...updates });
             };
 
             const removeFreeAbility = (abilityName) => {
@@ -1347,6 +1369,10 @@
                 if (hasPick) {
                     // Will need to pick skills — initialize empty
                     updated.abilityChoices = { ...updated.abilityChoices, [abilityName]: [] };
+                }
+                // Sixth-Man: auto-set gangModels to 6
+                if (abilityName === 'Sixth-Man' && character.type === 'gang') {
+                    updated.gangModels = 6;
                 }
                 onUpdate(updated);
                 setShowBrowser(false);
@@ -1375,10 +1401,18 @@
             // Get the available pool for browsing
             const isGangChar = character.type === 'gang';
             const browseAbilities = (() => {
-                let available = getAbilitiesForLevel(gameData, maxLevel);
-                // Gang characters also get gang-specific abilities
-                if (isGangChar && gameData.abilities.gang) {
-                    available = [...available, ...gameData.abilities.gang];
+                let available;
+                if (isGangChar) {
+                    // Gangs may only take gang-specific abilities and the specific L1/L2 abilities allowed by rulebook
+                    const gangAbs = gameData.abilities.gang || [];
+                    const allowedNames = gangAbs[0]?.gangAllowedAbilities || {};
+                    const l1Names = allowedNames.level1 || [];
+                    const l2Names = allowedNames.level2 || [];
+                    const allowedL1 = (gameData.abilities.level1 || []).filter(a => l1Names.includes(a.name));
+                    const allowedL2 = (gameData.abilities.level2 || []).filter(a => l2Names.includes(a.name));
+                    available = [...gangAbs, ...allowedL1, ...allowedL2];
+                } else {
+                    available = getAbilitiesForLevel(gameData, maxLevel);
                 }
                 const filtered = available.filter(ab => {
                     if (searchTerm && !ab.name.toLowerCase().includes(searchTerm.toLowerCase()) && !ab.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -1851,7 +1885,7 @@
                                 </span>
                                 {template && <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Health: {(league.perks.includes('Duo') && character.type === 'sidekick') ? 'd10' : template.health}</span>}
                                 {character.type === 'gang' && (
-                                    <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Models: {character.gangModels || 5}</span>
+                                    <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Models: {(character.abilities.includes('Sixth-Man') || (character.freeAbilities || []).includes('Sixth-Man')) ? 6 : 5}</span>
                                 )}
                                 {/* Acting Leader toggle for LoL/Mastermind sidekicks */}
                                 {character.type === 'sidekick' && (league.perks.includes('League of Legends') || league.perks.includes('Mastermind')) && (
@@ -1881,15 +1915,18 @@
                         </button>
                     </div>
 
-                    {/* Gang model count */}
+                    {/* Gang model count — read-only; 5 base, 6 if Sixth-Man ability is present */}
                     {character.type === 'gang' && (
                         <div className="mb-4 flex items-center gap-3">
-                            <span className="typewriter text-sm" style={{color:'var(--ink-light)'}}>Number of Models:</span>
-                            <select value={character.gangModels || 5} onChange={e => onUpdate({...character, gangModels: Number(e.target.value)})}
-                                className="px-2 py-1 rounded typewriter text-sm cursor-pointer outline-none"
-                                style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}}>
-                                {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-                            </select>
+                            <span className="typewriter text-sm" style={{color:'var(--ink-light)'}}>Models:</span>
+                            <span className="typewriter text-sm px-3 py-1 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                {(character.abilities.includes('Sixth-Man') || (character.freeAbilities || []).includes('Sixth-Man')) ? 6 : 5}
+                            </span>
+                            <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                                {(character.abilities.includes('Sixth-Man') || (character.freeAbilities || []).includes('Sixth-Man'))
+                                    ? '(+1 from Sixth-Man)'
+                                    : '(add Sixth-Man for 6)'}
+                            </span>
                         </div>
                     )}
 
@@ -2452,10 +2489,12 @@
             const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
             const xpLearnChar = xpLearnCharId ? league.characters.find(c => c.id === xpLearnCharId) : null;
 
+            // Max XP-learned abilities = character.level (gangs are level 2, so capped at 2 per rulebook)
             const getMaxLearnedForChar = (character) => character.level || 1;
 
             const getLearnedCount = (character) => (character.learnedAbilities || []).length;
 
+            // XP cost per ability = character.level (gangs are level 2, so cost is 2 XP per rulebook)
             const xpCostForChar = (character) => character.level || 1;
 
             const learnAbility = (character, abilityName) => {
@@ -2485,9 +2524,18 @@
                 const template = getTemplate(gameData, xpLearnChar.type);
                 if (!template) return [];
                 const maxLevel = template.maxAbilityLevel;
-                let available = getAbilitiesForLevel(gameData, maxLevel);
-                if (xpLearnChar.type === 'gang' && gameData.abilities.gang) {
-                    available = [...available, ...gameData.abilities.gang];
+                let available;
+                if (xpLearnChar.type === 'gang') {
+                    // Gangs may only learn gang-specific abilities and the specific L1/L2 abilities allowed by rulebook
+                    const gangAbs = gameData.abilities.gang || [];
+                    const allowedNames = gangAbs[0]?.gangAllowedAbilities || {};
+                    const l1Names = allowedNames.level1 || [];
+                    const l2Names = allowedNames.level2 || [];
+                    const allowedL1 = (gameData.abilities.level1 || []).filter(a => l1Names.includes(a.name));
+                    const allowedL2 = (gameData.abilities.level2 || []).filter(a => l2Names.includes(a.name));
+                    available = [...gangAbs, ...allowedL1, ...allowedL2];
+                } else {
+                    available = getAbilitiesForLevel(gameData, maxLevel);
                 }
                 return available.filter(ab => {
                     if (xpSearchTerm && !ab.name.toLowerCase().includes(xpSearchTerm.toLowerCase()) && !ab.description.toLowerCase().includes(xpSearchTerm.toLowerCase())) return false;
@@ -2841,8 +2889,8 @@
                                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a89060" strokeWidth="1" strokeLinecap="round"><circle cx="12" cy="8" r="5"/><path d="M3 21c0-4.97 4.03-9 9-9s9 4.03 9 9"/></svg>
                                                 </div>
                                             )}
-                                            {/* Gang models */}
-                                            {character.type === 'gang' && <div style={{fontSize:'7px', color:'#5a4a2e', marginTop:'2px', textAlign:'center'}}>Models: {character.gangModels || 5}</div>}
+                                            {/* Gang models — computed: 6 with Sixth-Man, else 5 */}
+                                            {character.type === 'gang' && <div style={{fontSize:'7px', color:'#5a4a2e', marginTop:'2px', textAlign:'center'}}>Models: {([...(character.abilities||[]), ...(character.freeAbilities||[])].includes('Sixth-Man')) ? 6 : 5}</div>}
                                         </div>
 
                                         {/* Right: Skills */}
@@ -2918,6 +2966,18 @@
                                             </div>
                                         </div>
                                     )}
+                                    {/* Gang KO info — replaces health track */}
+                                    {character.type === 'gang' && (() => {
+                                        const allGangAbs = [...(character.abilities || []), ...(character.freeAbilities || [])];
+                                        const hasLoyal = allGangAbs.includes('Loyal');
+                                        const koThreshold = hasLoyal ? '≤1 model' : '≤2 models';
+                                        return (
+                                            <div style={{display:'flex', alignItems:'center', borderTop:'1.5px solid #3b2a1a', background:'rgba(59,47,30,0.1)', marginTop:'auto', padding:'2px 4px'}}>
+                                                <span style={{fontWeight:'bold', fontSize:'7px', color:'#8b1a1a', whiteSpace:'nowrap', marginRight:'4px'}}>KO:</span>
+                                                <span style={{fontSize:'7px', color:'#2a1f0e'}}>Knocked out at {koThreshold}</span>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             );
                         })}
