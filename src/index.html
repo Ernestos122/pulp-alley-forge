@@ -543,13 +543,16 @@
             if (usedSlots > totalSlots) errors.push(`Over slot limit: ${usedSlots}/${totalSlots}`);
 
             const leaders = league.characters.filter(c => c.type === 'leader');
+            const epics = league.characters.filter(c => c.type === 'epic');
+            const leaderFigures = leaders.length + epics.length; // Epics fill the leader role
             const sidekicks = league.characters.filter(c => c.type === 'sidekick');
             const hasMastermind = league.perks.includes('Mastermind');
             const hasLoL = league.perks.includes('League of Legends');
+            const hasSupers = league.optionalRules?.supers;
 
-            if (!hasMastermind && !hasLoL && leaders.length !== 1) errors.push('League must have exactly 1 Leader');
-            if (hasMastermind && leaders.length > 0) errors.push('Mastermind: league has no Leader character');
-            if (hasLoL && leaders.length > 0) errors.push('League of Legends: no Leader character');
+            if (!hasMastermind && !hasLoL && leaderFigures !== 1) errors.push('League must have exactly 1 Leader (or Epic)');
+            if (hasMastermind && leaderFigures > 0) errors.push('Mastermind: no Leader/Epic character');
+            if (hasLoL && leaderFigures > 0) errors.push('League of Legends: no Leader/Epic character');
 
             if (sidekicks.length > getMaxSidekicks(league)) errors.push(`Max ${getMaxSidekicks(league)} Sidekick(s)`);
             if (league.associates.length > getMaxAssociates(league)) errors.push(`Max ${getMaxAssociates(league)} Associates`);
@@ -999,7 +1002,8 @@
         // ==========================================
         const AddCharacterModal = ({ league, gameData, onAdd, onClose }) => {
             const available = getAvailableSlots(league, gameData);
-            const hasLeader = league.characters.some(c => c.type === 'leader');
+            // Epic characters also fill the leader role
+            const hasLeader = league.characters.some(c => c.type === 'leader' || c.type === 'epic');
             const sidekickCount = league.characters.filter(c => c.type === 'sidekick').length;
             const maxSK = getMaxSidekicks(league);
             const hasMastermind = league.perks.includes('Mastermind');
@@ -3005,18 +3009,19 @@
         // ==========================================
         // 5k. EMPTY STATE
         // ==========================================
-        const EmptyState = ({ league, onAddLeader, onOpenAddModal }) => {
+        const EmptyState = ({ league, gameData, onAddLeader, onOpenAddModal }) => {
             const hasChars = league.characters.length > 0;
-            const hasLeader = league.characters.some(c => c.type === 'leader');
+            // Epic characters and acting leaders also count as "has a leader figure"
+            const hasLeaderFigure = league.characters.some(c => c.type === 'leader' || c.type === 'epic') ||
+                league.perks.includes('League of Legends') || league.perks.includes('Mastermind');
             const hasSidekick = league.characters.some(c => c.type === 'sidekick');
-            const totalSlots = league.characters.reduce((acc, c) => acc + (c.type === 'leader' ? 0 : c.type === 'sidekick' ? 3 : c.type === 'ally' ? 2 : c.type === 'gang' ? 2 : c.type === 'epic' ? 5 : 1), 0);
-            const rosterFull = totalSlots >= 10;
+            const rosterFull = hasChars && gameData ? getAvailableSlots(league, gameData) <= 0 : false;
             const incompleteChar = hasChars ? league.characters.find(c => c.type !== 'gang' && c.type !== 'follower' && SKILLS.some(s => c.skillAssignments?.[s]?.count == null || c.skillAssignments?.[s]?.diceType == null)) : null;
 
             let hint = null;
             if (!hasChars) {
                 hint = 'Start by creating your Leader — every league needs one.';
-            } else if (hasLeader && !hasSidekick && !rosterFull) {
+            } else if (hasLeaderFigure && !hasSidekick && !rosterFull && !league.perks.includes('League of Legends') && !league.perks.includes('Duo')) {
                 hint = 'Your Leader is ready! Consider adding a Sidekick (3 slots) or Allies.';
             } else if (incompleteChar) {
                 hint = `Select "${incompleteChar.name || 'Unnamed'}" to finish assigning their skills.`;
@@ -3026,6 +3031,9 @@
                 hint = 'Choose a character from the sidebar to edit their dossier.';
             }
 
+            // Needs a leader-type figure (not for LoL/Mastermind which use sidekicks as leaders)
+            const needsLeader = !hasLeaderFigure && !league.perks.includes('League of Legends') && !league.perks.includes('Mastermind');
+
             return (
                 <div className="flex-1 flex items-center justify-center p-6">
                     <div className="text-center">
@@ -3034,25 +3042,33 @@
                                 <Icons.Users size={48} className="mx-auto mb-4" style={{color:'var(--ink-faded)'}} />
                                 <h2 className="brand-font text-xl font-bold mb-2" style={{color:'var(--ink)'}}>Assemble Your League</h2>
                                 <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>{hint}</p>
-                                <button onClick={onAddLeader}
-                                    className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
-                                    style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
-                                    Create Leader
-                                </button>
+                                {needsLeader ? (
+                                    <button onClick={onAddLeader}
+                                        className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                        style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                        Create Leader
+                                    </button>
+                                ) : (
+                                    <button onClick={onOpenAddModal}
+                                        className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
+                                        style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                        + Add Character
+                                    </button>
+                                )}
                             </>
                         ) : (
                             <>
                                 <Icons.FileText size={48} className="mx-auto mb-4" style={{color:'var(--ink-faded)'}} />
                                 <h2 className="brand-font text-xl font-bold mb-2" style={{color:'var(--ink)'}}>Select a Character</h2>
                                 <p className="typewriter text-sm mb-4" style={{color:'var(--ink-faded)'}}>{hint}</p>
-                                {!hasLeader && (
+                                {needsLeader && (
                                     <button onClick={onAddLeader}
                                         className="px-6 py-3 rounded typewriter cursor-pointer hover:opacity-80"
                                         style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
                                         Create Leader
                                     </button>
                                 )}
-                                {hasLeader && !rosterFull && (
+                                {hasLeaderFigure && !rosterFull && (
                                     <button onClick={onOpenAddModal}
                                         className="px-5 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80"
                                         style={{background:'var(--leather)', color:'var(--paper)', border:'1px solid var(--border)'}}>
@@ -3091,23 +3107,43 @@
                     <div className="p-8 rounded-lg max-w-md w-full" style={{background:'var(--paper)', border:'2px solid var(--border)'}}>
                         <h1 className="text-2xl font-bold brand-font mb-6 text-center" style={{color:'var(--crimson)'}}>LEAGUE DOSSIERS</h1>
                         {leagues.length > 0 && (
-                            <div className="mb-6 max-h-64 overflow-y-auto">
-                                {leagues.sort((a,b) => b.lastModified - a.lastModified).map(entry => (
-                                    <div key={entry.id} className="flex items-center gap-2 mb-2">
-                                        <button onClick={() => onSelect(loadLeague(entry.id))}
-                                            className="flex-1 text-left p-3 rounded cursor-pointer transition-opacity hover:opacity-80"
-                                            style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
-                                            <div className="font-bold brand-font" style={{color:'var(--ink)'}}>{entry.name}</div>
-                                            <div className="text-xs typewriter" style={{color:'var(--ink-faded)'}}>
-                                                {new Date(entry.lastModified).toLocaleDateString()}
-                                            </div>
-                                        </button>
-                                        <button onClick={() => handleDelete(entry.id, entry.name)}
-                                            className="p-2 rounded cursor-pointer hover:opacity-80" style={{color:'var(--crimson)'}}>
-                                            <Icons.Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                ))}
+                            <div className="mb-6 max-h-80 overflow-y-auto">
+                                {leagues.sort((a,b) => b.lastModified - a.lastModified).map(entry => {
+                                    const data = loadLeague(entry.id);
+                                    const charCount = data?.characters?.length || 0;
+                                    const charTypes = data?.characters ? data.characters.map(c => LEVEL_LABELS[c.type] || c.type).join(', ') : '';
+                                    const perkCount = data?.perks?.length || 0;
+                                    const assocCount = data?.associates?.length || 0;
+                                    const genre = data?.genre || null;
+                                    const rep = data?.campaignState?.reputation || 0;
+                                    return (
+                                        <div key={entry.id} className="flex items-start gap-2 mb-3">
+                                            <button onClick={() => onSelect(data)}
+                                                className="flex-1 text-left p-3 rounded cursor-pointer transition-opacity hover:opacity-80"
+                                                style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="font-bold brand-font" style={{color:'var(--ink)'}}>{entry.name}</span>
+                                                    {genre && <span className="typewriter text-xs px-1.5 py-0.5 rounded" style={{background:'var(--leather)', color:'var(--paper)'}}>{genre}</span>}
+                                                </div>
+                                                {charCount > 0 && (
+                                                    <div className="typewriter text-xs mb-0.5" style={{color:'var(--ink-light)'}}>
+                                                        {charCount} character{charCount !== 1 ? 's' : ''}: {charTypes}
+                                                    </div>
+                                                )}
+                                                <div className="typewriter text-xs flex flex-wrap gap-x-3" style={{color:'var(--ink-faded)'}}>
+                                                    {perkCount > 0 && <span>{perkCount} perk{perkCount !== 1 ? 's' : ''}</span>}
+                                                    {assocCount > 0 && <span>{assocCount} associate{assocCount !== 1 ? 's' : ''}</span>}
+                                                    {rep > 0 && <span>Rep: {rep}</span>}
+                                                    <span>{new Date(entry.lastModified).toLocaleDateString()}</span>
+                                                </div>
+                                            </button>
+                                            <button onClick={() => handleDelete(entry.id, entry.name)}
+                                                className="p-2 rounded cursor-pointer hover:opacity-80 mt-1" style={{color:'var(--crimson)'}}>
+                                                <Icons.Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                         <div className="flex gap-3">
@@ -3230,6 +3266,7 @@
                 return (
                     <EmptyState
                         league={league}
+                        gameData={gameData}
                         onAddLeader={() => addCharacter('leader')}
                         onOpenAddModal={() => setShowAddModal(true)}
                     />
