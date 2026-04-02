@@ -49,6 +49,7 @@
         .badge-ally { color: #8b6914; }
         .badge-follower { color: var(--ink-faded); }
         .badge-gang { color: var(--ink-light); }
+        .badge-epic { color: var(--crimson); }
 
         /* Print overrides */
         @media print {
@@ -154,8 +155,11 @@
             abilities: [],
             abilityFlavourNames: {},
             abilityChoices: {},
-            freeAbilities: [],
+            freeAbilities: type === 'epic' ? ['Monster'] : [],
+            learnedAbilities: [],
+            weapon: null,
             gangModels: type === 'gang' ? 5 : null,
+            extraAbilitySlots: type === 'epic' ? 0 : undefined,
             ...(template || {}),
         });
 
@@ -179,7 +183,7 @@
                 secretSocietyPerks: [],
             },
             genre: null,
-            optionalRules: { weapons: false, harrowing: false, supers: false },
+            optionalRules: { weapons: false, harrowing: false, supers: false, deadAlive: false, heartless: false, roadWarriors: false, scavengeAndSurvive: false, singleShot: false },
         });
 
         // LocalStorage helpers
@@ -379,6 +383,8 @@
             league.characters.forEach(c => {
                 const tmpl = getTemplate(gameData, c.type);
                 if (tmpl) used += tmpl.rosterSlotCost;
+                // Epic characters can spend extra roster slots for additional abilities
+                if (c.type === 'epic' && c.extraAbilitySlots) used += c.extraAbilitySlots;
             });
             league.perks.forEach(pName => {
                 const perk = gameData.perks.find(p => p.name === pName);
@@ -643,6 +649,28 @@
                             <option value="">Classic Pulp</option>
                             {(gameData?.genres || []).map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
                         </select>
+                        <button
+                            onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), weapons: !l.optionalRules?.weapons}}))}
+                            title="Weapons optional rule: characters may equip weapons"
+                            className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all"
+                            style={{
+                                background: league.optionalRules?.weapons ? 'var(--crimson)' : 'var(--ink)',
+                                color: 'var(--paper)',
+                                border: league.optionalRules?.weapons ? '1px solid var(--crimson)' : '1px solid var(--ink-faded)',
+                            }}>
+                            Weapons
+                        </button>
+                        <button
+                            onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), supers: !l.optionalRules?.supers}}))}
+                            title="Supers optional rule: allows Epic characters"
+                            className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all"
+                            style={{
+                                background: league.optionalRules?.supers ? 'var(--crimson)' : 'var(--ink)',
+                                color: 'var(--paper)',
+                                border: league.optionalRules?.supers ? '1px solid var(--crimson)' : '1px solid var(--ink-faded)',
+                            }}>
+                            Supers
+                        </button>
                         <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
                             <Icons.Download size={16} />
                         </button>
@@ -690,6 +718,7 @@
             const used = getUsedSlots(league, gameData);
             const total = getTotalSlots(league, gameData);
             const leaders = league.characters.filter(c => c.type === 'leader');
+            const epics = league.characters.filter(c => c.type === 'epic');
             const sidekicks = league.characters.filter(c => c.type === 'sidekick');
             const allies = league.characters.filter(c => c.type === 'ally');
             const followers = league.characters.filter(c => c.type === 'follower');
@@ -743,6 +772,7 @@
 
                     <div className="flex-1 overflow-y-auto">
                         <Section title="Leader" chars={leaders} />
+                        <Section title="Epic" chars={epics} />
                         <Section title="Sidekicks" chars={sidekicks} />
                         <Section title="Allies" chars={allies} />
                         <Section title="Followers" chars={followers} />
@@ -776,6 +806,39 @@
                             ))}
                         </div>
 
+                        <div className="mb-2 mt-3">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
+                                style={{color: activeView === 'campaign' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                                onClick={() => onSetView('campaign')}>
+                                <span>Campaign</span>
+                                <Icons.FileText size={10} />
+                            </div>
+                            {league.campaignState && (league.campaignState.reputation > 0 || league.campaignState.xp > 0) && (
+                                <div className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
+                                    Rep: {league.campaignState.reputation} | XP: {league.campaignState.xp}
+                                </div>
+                            )}
+                            {league.campaignState?.secretSociety && (
+                                <div className="text-xs typewriter py-1 px-2 mb-1 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink-light)'}}>
+                                    {league.campaignState.secretSociety}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mb-2 mt-3">
+                            {(() => {
+                                const activeCount = Object.entries(league.optionalRules || {}).filter(([,v]) => v).length;
+                                return (
+                                    <div className="typewriter text-xs uppercase tracking-wider mb-1 cursor-pointer hover:opacity-80 flex items-center justify-between"
+                                        style={{color: activeView === 'settings' ? 'var(--crimson)' : 'var(--ink-faded)'}}
+                                        onClick={() => onSetView('settings')}>
+                                        <span>Settings {activeCount > 0 ? `(${activeCount})` : ''}</span>
+                                        <Icons.Edit2 size={10} />
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
                         {league.characters.length === 0 && (
                             <p className="text-xs typewriter" style={{color:'var(--ink-faded)'}}>No operatives yet</p>
                         )}
@@ -800,13 +863,15 @@
             const maxSK = getMaxSidekicks(league);
             const hasMastermind = league.perks.includes('Mastermind');
             const hasLoL = league.perks.includes('League of Legends');
+            const supersEnabled = league.optionalRules?.supers;
 
             const options = [
-                { type: 'leader', label: 'Leader', cost: 0, disabled: hasLeader || hasMastermind || hasLoL, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : hasLoL ? 'League of Legends: no Leader' : '' },
-                { type: 'sidekick', label: 'Sidekick', cost: 3, disabled: sidekickCount >= maxSK || available < 3, reason: sidekickCount >= maxSK ? `Max ${maxSK} Sidekick(s)` : 'Not enough slots' },
-                { type: 'ally', label: 'Ally', cost: 2, disabled: available < 2, reason: 'Not enough slots' },
-                { type: 'follower', label: 'Follower', cost: 1, disabled: available < 1, reason: 'Not enough slots' },
-                { type: 'gang', label: 'Gang', cost: 2, disabled: available < 2, reason: 'Not enough slots' },
+                { type: 'leader', label: 'Leader', cost: 0, desc: '', disabled: hasLeader || hasMastermind || hasLoL, reason: hasLeader ? 'Already have a Leader' : hasMastermind ? 'Mastermind: no Leader' : hasLoL ? 'League of Legends: no Leader' : '' },
+                { type: 'sidekick', label: 'Sidekick', cost: 3, desc: '', disabled: sidekickCount >= maxSK || available < 3, reason: sidekickCount >= maxSK ? `Max ${maxSK} Sidekick(s)` : 'Not enough slots' },
+                { type: 'ally', label: 'Ally', cost: 2, desc: '', disabled: available < 2, reason: 'Not enough slots' },
+                { type: 'follower', label: 'Follower', cost: 1, desc: '', disabled: available < 1, reason: 'Not enough slots' },
+                { type: 'gang', label: 'Gang', cost: 2, desc: '', disabled: available < 2, reason: 'Not enough slots' },
+                ...(supersEnabled ? [{ type: 'epic', label: 'Epic', cost: 5, desc: '3 abilities + 1 epic ability + Monster free.', disabled: available < 5, reason: 'Not enough slots (need 5)' }] : []),
             ];
 
             // Filter: Duo perk restricts to leader+sidekick only
@@ -841,6 +906,7 @@
                                             <span className="brand-font font-bold" style={{color: LEVEL_COLORS[opt.type]}}>{opt.label}</span>
                                             <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{opt.cost > 0 ? `${opt.cost} slots` : 'Free'}</span>
                                         </div>
+                                        {opt.desc && !dis && <div className="typewriter text-xs mt-1" style={{color:'var(--ink-faded)'}}>{opt.desc}</div>}
                                         {dis && <div className="typewriter text-xs mt-1" style={{color:'var(--crimson)'}}>{reason}</div>}
                                     </button>
                                 );
@@ -1059,16 +1125,29 @@
 
         const AbilityPicker = ({ character, gameData, onUpdate }) => {
             const [showBrowser, setShowBrowser] = useState(false);
+            const [showEpicBrowser, setShowEpicBrowser] = useState(false);
             const [searchTerm, setSearchTerm] = useState('');
             const [levelFilter, setLevelFilter] = useState(0);
             const template = getTemplate(gameData, character.type);
             if (!template) return null;
 
+            const isEpic = character.type === 'epic';
             const maxLevel = template.maxAbilityLevel;
-            const maxSlots = template.abilitySlots;
-            const usedSlots = character.abilities.length;
+            // For epic: regular ability slots = abilitySlots (3) + extraAbilitySlots
+            const extraSlots = isEpic ? (character.extraAbilitySlots || 0) : 0;
+            const maxSlots = template.abilitySlots + extraSlots;
+            // For epic: epic ability slots come from template.epicAbilitySlots (1)
+            const maxEpicSlots = isEpic ? (template.epicAbilitySlots || 1) : 0;
 
-            // Free abilities from Beast/Goon/Dithering
+            // Split epic character abilities: epic vs regular
+            const epicAbilityNames = isEpic ? (gameData.abilities.epic || []).map(a => a.name) : [];
+            const regularAbilities = isEpic ? character.abilities.filter(a => !epicAbilityNames.includes(a)) : character.abilities;
+            const epicAbilities = isEpic ? character.abilities.filter(a => epicAbilityNames.includes(a)) : [];
+
+            const usedSlots = regularAbilities.length;
+            const usedEpicSlots = epicAbilities.length;
+
+            // Free abilities from Beast/Goon/Dithering / Monster (Epic)
             const freeAbilities = character.freeAbilities || [];
 
             const removeAbility = (abilityName) => {
@@ -1094,7 +1173,9 @@
             };
 
             const addAbility = (abilityName) => {
-                if (usedSlots >= maxSlots) return;
+                const isEpicAbility = epicAbilityNames.includes(abilityName);
+                if (isEpicAbility && usedEpicSlots >= maxEpicSlots) return;
+                if (!isEpicAbility && usedSlots >= maxSlots) return;
                 const ability = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])].find(a => a.name === abilityName);
                 if (!ability) return;
                 let updated = { ...character, abilities: [...character.abilities, abilityName] };
@@ -1106,6 +1187,7 @@
                 }
                 onUpdate(updated);
                 setShowBrowser(false);
+                setShowEpicBrowser(false);
             };
 
             const addFreeAbility = (abilityName, parentAbility) => {
@@ -1142,6 +1224,15 @@
                 });
                 return filtered;
             })();
+
+            // Epic ability browser pool (only for epic characters)
+            const browseEpicAbilities = isEpic ? (() => {
+                const pool = gameData.abilities.epic || [];
+                return pool.filter(ab => {
+                    if (searchTerm && !ab.name.toLowerCase().includes(searchTerm.toLowerCase()) && !ab.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+                    return true;
+                });
+            })() : [];
 
             const AbilityCard = ({ abilityName, isFree, onRemove }) => {
                 const ab = allAbPool.find(a => a.name === abilityName);
@@ -1259,21 +1350,58 @@
 
             return (
                 <div className="mb-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="typewriter text-xs uppercase tracking-wider" style={{color:'var(--crimson)'}}>Abilities ({usedSlots}/{maxSlots})</div>
-                        {usedSlots < maxSlots && (
-                            <button onClick={() => { setShowBrowser(true); setSearchTerm(''); }}
-                                className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
-                                style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
-                                <Icons.Plus size={12} /> Add Ability
-                            </button>
-                        )}
-                    </div>
+                    {/* Header — split for Epic, combined for others */}
+                    {isEpic ? (
+                        <div className="mb-2">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--crimson)'}}>Abilities</div>
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Abilities: {usedSlots}/{maxSlots}</span>
+                                {usedSlots < maxSlots && (
+                                    <button onClick={() => { setShowBrowser(true); setSearchTerm(''); setLevelFilter(0); }}
+                                        className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
+                                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                                        <Icons.Plus size={12} /> Add Ability
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>Epic Ability: {usedEpicSlots}/{maxEpicSlots}</span>
+                                {usedEpicSlots < maxEpicSlots && (
+                                    <button onClick={() => { setShowEpicBrowser(true); setSearchTerm(''); }}
+                                        className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
+                                        style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                        <Icons.Plus size={12} /> Add Epic Ability
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="typewriter text-xs uppercase tracking-wider" style={{color:'var(--crimson)'}}>Abilities ({usedSlots}/{maxSlots})</div>
+                            {usedSlots < maxSlots && (
+                                <button onClick={() => { setShowBrowser(true); setSearchTerm(''); }}
+                                    className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center gap-1"
+                                    style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                                    <Icons.Plus size={12} /> Add Ability
+                                </button>
+                            )}
+                        </div>
+                    )}
 
-                    {/* Selected abilities */}
-                    {character.abilities.map(aName => (
+                    {/* Regular abilities */}
+                    {(isEpic ? regularAbilities : character.abilities).map(aName => (
                         <AbilityCard key={aName} abilityName={aName} isFree={false} onRemove={() => removeAbility(aName)} />
                     ))}
+
+                    {/* Epic abilities (epic characters only) */}
+                    {isEpic && epicAbilities.length > 0 && (
+                        <div className="mb-1">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-1" style={{color:'var(--crimson)', opacity:0.7}}>Epic Abilities</div>
+                            {epicAbilities.map(aName => (
+                                <AbilityCard key={aName} abilityName={aName} isFree={false} onRemove={() => removeAbility(aName)} />
+                            ))}
+                        </div>
+                    )}
 
                     {/* Free abilities (not part of parent grant — standalone display) */}
                     {freeAbilities.filter(f => {
@@ -1349,6 +1477,168 @@
                             </div>
                         </div>
                     )}
+
+                    {/* Epic Ability Browser Modal */}
+                    {showEpicBrowser && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.6)'}} onClick={() => setShowEpicBrowser(false)}>
+                            <div className="p-4 rounded-lg w-full max-w-lg max-h-[80vh] flex flex-col" style={{background:'var(--paper)', border:'2px solid var(--crimson)'}} onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <h3 className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>Select Epic Ability</h3>
+                                        <div className="typewriter text-xs" style={{color:'var(--crimson)'}}>Epic slot: {usedEpicSlots}/{maxEpicSlots}</div>
+                                    </div>
+                                    <button onClick={() => setShowEpicBrowser(false)} className="cursor-pointer hover:opacity-70" style={{color:'var(--ink-faded)'}}>
+                                        <Icons.X size={18} />
+                                    </button>
+                                </div>
+                                <div className="mb-3 relative">
+                                    <Icons.Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2" style={{color:'var(--ink-faded)'}} />
+                                    <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                        placeholder="Search epic abilities..."
+                                        className="w-full pl-7 pr-2 py-1.5 rounded typewriter text-sm outline-none"
+                                        style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}} />
+                                </div>
+                                <div className="flex-1 overflow-y-auto space-y-1">
+                                    {browseEpicAbilities.map(ab => {
+                                        const errors = validateAbilityForCharacter(ab.name, character, gameData);
+                                        const blocked = errors.length > 0;
+                                        return (
+                                            <button key={ab.name}
+                                                disabled={blocked}
+                                                onClick={() => addAbility(ab.name)}
+                                                className="w-full text-left p-2 rounded cursor-pointer transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                style={{background:'var(--paper-dark)', border:'1px solid var(--crimson)'}}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="brand-font font-bold text-sm" style={{color: blocked ? 'var(--ink-faded)' : 'var(--crimson)'}}>{ab.name}</span>
+                                                    <span className="typewriter text-xs px-1 rounded" style={{background:'var(--crimson)', color:'var(--paper)'}}>Epic</span>
+                                                </div>
+                                                <div className="typewriter text-xs mt-0.5" style={{color:'var(--ink-faded)'}}>{ab.description}</div>
+                                                {blocked && <div className="typewriter text-xs mt-0.5" style={{color:'var(--crimson)'}}>{errors.join(' | ')}</div>}
+                                            </button>
+                                        );
+                                    })}
+                                    {browseEpicAbilities.length === 0 && (
+                                        <div className="text-center typewriter text-sm py-4" style={{color:'var(--ink-faded)'}}>No epic abilities available</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5f2. WEAPON PICKER
+        // ==========================================
+        const WeaponPicker = ({ character, gameData, onUpdate, weaponsEnabled }) => {
+            if (!weaponsEnabled) return null;
+            const weapons = gameData.weapons || { ranged: [], melee: [] };
+            const allWeapons = [...weapons.ranged.map(w => ({...w, group:'Ranged'})), ...weapons.melee.map(w => ({...w, group:'Melee'}))];
+            const current = character.weapon || '';
+
+            const handleChange = (e) => {
+                onUpdate({ ...character, weapon: e.target.value || null });
+            };
+
+            const selectedWeapon = allWeapons.find(w => w.name === current);
+
+            return (
+                <div className="mb-6">
+                    <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Weapon</div>
+                    <div className="p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <select value={current} onChange={handleChange}
+                            className="w-full px-2 py-1.5 rounded typewriter text-sm cursor-pointer outline-none mb-2"
+                            style={{background:'var(--paper)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                            <option value="">— No Weapon —</option>
+                            <optgroup label="Ranged">
+                                {weapons.ranged.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
+                            </optgroup>
+                            <optgroup label="Melee">
+                                {weapons.melee.map(w => <option key={w.name} value={w.name}>{w.name}</option>)}
+                            </optgroup>
+                        </select>
+                        {selectedWeapon && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="brand-font font-bold text-sm" style={{color:'var(--ink)'}}>{selectedWeapon.name}</span>
+                                    <span className="typewriter text-xs px-1 rounded" style={{background:'var(--leather)', color:'var(--paper)'}}>{selectedWeapon.group}</span>
+                                </div>
+                                <div className="typewriter text-xs" style={{color:'var(--ink-light)'}}>{selectedWeapon.description}</div>
+                            </div>
+                        )}
+                        <div className="typewriter text-xs mt-2 pt-2" style={{color:'var(--ink-faded)', borderTop:'1px dashed var(--border)'}}>
+                            Rule: If the character has no other kit (abilities that serve as weapons), the weapon is free. Otherwise it counts as a Level 1 ability.
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5f3. SETTINGS PANEL
+        // ==========================================
+        const SettingsPanel = ({ league, gameData, updateLeague }) => {
+            const settings = gameData.optionalSettings || [];
+            const rules = league.optionalRules || {};
+
+            const toggle = (name) => {
+                updateLeague(l => ({
+                    ...l,
+                    optionalRules: { ...(l.optionalRules || {}), [name]: !l.optionalRules?.[name] },
+                }));
+            };
+
+            return (
+                <div className="flex-1 overflow-y-auto p-6">
+                    <h2 className="brand-font text-xl font-bold mb-2" style={{color:'var(--ink)'}}>Optional Rules</h2>
+                    <p className="typewriter text-xs mb-6" style={{color:'var(--ink-faded)'}}>Enable optional rules for this league. Changes take effect immediately.</p>
+
+                    {/* Core toggles: Weapons & Supers */}
+                    <div className="mb-6 p-4 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Core Rules</div>
+                        <div className="space-y-3">
+                            {[
+                                { key: 'weapons', label: 'Weapons', description: 'Allow characters to equip weapons (Ranged and Melee). Each character may carry one weapon. If a character has no kit abilities, the weapon is free; otherwise it counts as a Level 1 ability.' },
+                                { key: 'supers', label: 'Supers', description: 'Allow Epic characters in the league roster. Epic characters cost 5 roster slots and have access to Epic Abilities.' },
+                            ].map(({ key, label, description }) => (
+                                <div key={key} className="flex items-start gap-3 p-3 rounded cursor-pointer hover:opacity-90 transition-all"
+                                    style={{background: rules[key] ? 'var(--leather)' : 'var(--paper)', border: `2px solid ${rules[key] ? 'var(--crimson)' : 'var(--border)'}`}}
+                                    onClick={() => toggle(key)}>
+                                    <div className="flex-shrink-0 w-10 h-6 rounded-full relative mt-0.5" style={{background: rules[key] ? 'var(--crimson)' : 'var(--border)'}}>
+                                        <div className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{background:'white', left: rules[key] ? '18px' : '2px'}} />
+                                    </div>
+                                    <div>
+                                        <div className="brand-font font-bold text-sm" style={{color: rules[key] ? 'var(--paper)' : 'var(--ink)'}}>{label}</div>
+                                        <div className="typewriter text-xs mt-0.5" style={{color: rules[key] ? 'var(--paper-dark)' : 'var(--ink-light)'}}>{description}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Optional settings from JSON */}
+                    <div className="p-4 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Advanced Settings</div>
+                        <div className="space-y-3">
+                            {settings.map(({ name, label, description }) => (
+                                <div key={name} className="flex items-start gap-3 p-3 rounded cursor-pointer hover:opacity-90 transition-all"
+                                    style={{background: rules[name] ? 'var(--leather)' : 'var(--paper)', border: `2px solid ${rules[name] ? 'var(--crimson)' : 'var(--border)'}`}}
+                                    onClick={() => toggle(name)}>
+                                    <div className="flex-shrink-0 w-10 h-6 rounded-full relative mt-0.5" style={{background: rules[name] ? 'var(--crimson)' : 'var(--border)'}}>
+                                        <div className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{background:'white', left: rules[name] ? '18px' : '2px'}} />
+                                    </div>
+                                    <div>
+                                        <div className="brand-font font-bold text-sm" style={{color: rules[name] ? 'var(--paper)' : 'var(--ink)'}}>{label}</div>
+                                        <div className="typewriter text-xs mt-0.5" style={{color: rules[name] ? 'var(--paper-dark)' : 'var(--ink-light)'}}>{description}</div>
+                                    </div>
+                                </div>
+                            ))}
+                            {settings.length === 0 && (
+                                <div className="typewriter text-xs text-center py-4" style={{color:'var(--ink-faded)'}}>No optional settings defined in data file.</div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             );
         };
@@ -1421,8 +1711,60 @@
                         </div>
                     )}
 
+                    {/* Epic: Extra ability slots from roster */}
+                    {character.type === 'epic' && (
+                        <div className="mb-4 p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--crimson)'}}>
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="typewriter text-sm" style={{color:'var(--ink-light)'}}>Extra Ability Slots (from roster):</span>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => onUpdate({...character, extraAbilitySlots: Math.max(0, (character.extraAbilitySlots || 0) - 1)})}
+                                        disabled={(character.extraAbilitySlots || 0) <= 0}
+                                        className="w-7 h-7 rounded flex items-center justify-center typewriter text-sm cursor-pointer hover:opacity-80 disabled:opacity-30"
+                                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>-</button>
+                                    <span className="brand-font font-bold w-6 text-center" style={{color:'var(--ink)'}}>{character.extraAbilitySlots || 0}</span>
+                                    <button onClick={() => onUpdate({...character, extraAbilitySlots: Math.min(5, (character.extraAbilitySlots || 0) + 1)})}
+                                        disabled={(character.extraAbilitySlots || 0) >= 5}
+                                        className="w-7 h-7 rounded flex items-center justify-center typewriter text-sm cursor-pointer hover:opacity-80 disabled:opacity-30"
+                                        style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>+</button>
+                                </div>
+                            </div>
+                            <div className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                                Each extra slot costs 1 roster slot (max 5). Total ability slots: {(template?.abilitySlots || 3) + (character.extraAbilitySlots || 0)}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Supers: Upgrade Leader to Epic */}
+                    {character.type === 'leader' && league?.optionalRules?.supers && (
+                        <div className="mb-4 p-3 rounded" style={{background:'rgba(139,26,26,0.1)', border:'1px solid var(--crimson)'}}>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="typewriter text-sm font-bold" style={{color:'var(--crimson)'}}>Supers Rule: Upgrade to Epic</div>
+                                    <div className="typewriter text-xs mt-0.5" style={{color:'var(--ink-faded)'}}>Warning: This costs 5 roster slots (leader was free)</div>
+                                </div>
+                                <button onClick={() => {
+                                    if (!confirm('Upgrade this Leader to an Epic character? This costs 5 roster slots.')) return;
+                                    onUpdate({
+                                        ...character,
+                                        type: 'epic',
+                                        level: 4,
+                                        freeAbilities: [...(character.freeAbilities || []).filter(a => a !== 'Monster'), 'Monster'],
+                                        extraAbilitySlots: character.extraAbilitySlots ?? 0,
+                                    });
+                                }}
+                                    className="px-3 py-1.5 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex-shrink-0"
+                                    style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                    Upgrade to Epic
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Skill Assignment */}
                     <SkillAssignmentGrid character={character} gameData={gameData} onUpdate={onUpdate} league={league} />
+
+                    {/* Weapon Picker */}
+                    <WeaponPicker character={character} gameData={gameData} onUpdate={onUpdate} weaponsEnabled={league?.optionalRules?.weapons} />
 
                     {/* Ability Picker */}
                     <AbilityPicker character={character} gameData={gameData} onUpdate={onUpdate} />
@@ -1677,7 +2019,489 @@
         };
 
         // ==========================================
-        // 5j. PRINTABLE ROSTER
+        // 5i2. HARROWING ESCAPE ROLLER
+        // ==========================================
+        const HarrowingEscapeRoller = ({ gameData }) => {
+            const [phase, setPhase] = useState(null); // null | 'ask' | 'result'
+            const [result, setResult] = useState(null); // { roll, entry, tableName }
+            const [flash, setFlash] = useState(false);
+            const escapeData = gameData.harrowingEscape;
+            if (!escapeData) return null;
+
+            const rollEscape = (passed) => {
+                const roll = Math.floor(Math.random() * 10) + 1;
+                const table = passed ? escapeData.fullRecovery : escapeData.criticalInjury;
+                let entry;
+                if (roll <= 3) entry = table[0];
+                else entry = table[roll - 3]; // roll 4→idx1, roll5→idx2…roll10→idx7
+                if (!entry) entry = table[table.length - 1];
+                const tableName = passed ? 'Full Recovery' : 'Critical Injury';
+                setResult({ roll, entry, tableName, passed });
+                setPhase('result');
+                setFlash(true);
+                setTimeout(() => setFlash(false), 600);
+            };
+
+            return (
+                <div className="mb-8 p-4 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                    <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Harrowing Escape</div>
+
+                    {phase === null && (
+                        <div>
+                            <div className="typewriter text-xs mb-3" style={{color:'var(--ink-faded)'}}>
+                                Roll when a character is taken out of action. Pass the random challenge for Full Recovery; fail for Critical Injury.
+                            </div>
+                            <button onClick={() => setPhase('ask')}
+                                className="px-4 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80"
+                                style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                                Roll Harrowing Escape
+                            </button>
+                        </div>
+                    )}
+
+                    {phase === 'ask' && (
+                        <div>
+                            <div className="typewriter text-sm mb-4" style={{color:'var(--ink)'}}>Did the character pass the random challenge?</div>
+                            <div className="flex gap-3 mb-2">
+                                <button onClick={() => rollEscape(true)}
+                                    className="flex-1 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80"
+                                    style={{background:'#2a6e5a', color:'var(--paper)', border:'none'}}>
+                                    Passed — Full Recovery
+                                </button>
+                                <button onClick={() => rollEscape(false)}
+                                    className="flex-1 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80"
+                                    style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                    Failed — Critical Injury
+                                </button>
+                            </div>
+                            <button onClick={() => setPhase(null)}
+                                className="typewriter text-xs cursor-pointer hover:opacity-70 underline"
+                                style={{color:'var(--ink-faded)', background:'none', border:'none'}}>
+                                Cancel
+                            </button>
+                        </div>
+                    )}
+
+                    {phase === 'result' && result && (
+                        <div>
+                            <div className="p-4 rounded mb-3"
+                                style={{
+                                    background: flash ? (result.passed ? '#2a6e5a' : 'var(--crimson)') : 'var(--paper)',
+                                    border: `2px solid ${result.passed ? '#2a6e5a' : 'var(--crimson)'}`,
+                                    transition: 'background 0.3s',
+                                }}>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <span className="brand-font text-3xl font-bold" style={{color: result.passed ? '#2a6e5a' : 'var(--crimson)'}}>{result.roll}</span>
+                                    <div>
+                                        <div className="typewriter text-xs uppercase" style={{color:'var(--ink-faded)'}}>{result.tableName}</div>
+                                        <div className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>{result.entry.name}</div>
+                                    </div>
+                                </div>
+                                <div className="typewriter text-sm" style={{color:'var(--ink-light)'}}>{result.entry.description}</div>
+                            </div>
+                            <button onClick={() => { setPhase(null); setResult(null); }}
+                                className="mr-4 typewriter text-xs cursor-pointer hover:opacity-70 underline"
+                                style={{color:'var(--ink-faded)', background:'none', border:'none'}}>
+                                Dismiss
+                            </button>
+                            <button onClick={() => setPhase('ask')}
+                                className="typewriter text-xs cursor-pointer hover:opacity-70 underline"
+                                style={{color:'var(--crimson)', background:'none', border:'none'}}>
+                                Roll Again
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5j. CAMPAIGN PANEL
+        // ==========================================
+
+        const CampaignPanel = ({ league, gameData, updateLeague, updateCharacter }) => {
+            const [xpLearnCharId, setXpLearnCharId] = useState(null);
+            const [xpSearchTerm, setXpSearchTerm] = useState('');
+            const [xpLevelFilter, setXpLevelFilter] = useState(0);
+            const cs = league.campaignState || { reputation: 0, xp: 0, resources: { tips: 0, backup: 0, gear: 0, contacts: 0 }, secretSociety: null, secretSocietyPerks: [] };
+            const reputation = cs.reputation || 0;
+            const xp = cs.xp || 0;
+            const resources = cs.resources || { tips: 0, backup: 0, gear: 0, contacts: 0 };
+            const repTable = gameData.reputationTable || [];
+            const societies = gameData.secretSocieties || [];
+
+            const setCampaignField = (field, value) => {
+                updateLeague(l => ({
+                    ...l,
+                    campaignState: { ...l.campaignState, [field]: value },
+                }));
+            };
+
+            const setResource = (key, value) => {
+                const v = Math.max(0, value);
+                updateLeague(l => ({
+                    ...l,
+                    campaignState: {
+                        ...l.campaignState,
+                        resources: { ...l.campaignState.resources, [key]: v },
+                    },
+                }));
+            };
+
+            // Reputation milestones
+            const unlocked = repTable.filter(m => reputation >= m.threshold);
+            const upcoming = repTable.find(m => reputation < m.threshold);
+
+            // Secret Societies
+            const currentSociety = cs.secretSociety ? societies.find(s => s.name === cs.secretSociety) : null;
+            const societyPerks = cs.secretSocietyPerks || [];
+
+            const joinSociety = (name) => {
+                updateLeague(l => ({
+                    ...l,
+                    campaignState: { ...l.campaignState, secretSociety: name, secretSocietyPerks: [] },
+                }));
+            };
+
+            const leaveSociety = () => {
+                if (!confirm('Leave your Secret Society? All society perks will be lost.')) return;
+                updateLeague(l => ({
+                    ...l,
+                    campaignState: { ...l.campaignState, secretSociety: null, secretSocietyPerks: [] },
+                }));
+            };
+
+            const selectSocietyPerk = (rankNum, perkName) => {
+                // Replace any existing perk for this rank
+                const filtered = societyPerks.filter(p => p.rank !== rankNum);
+                updateLeague(l => ({
+                    ...l,
+                    campaignState: {
+                        ...l.campaignState,
+                        secretSocietyPerks: [...filtered, { rank: rankNum, name: perkName }],
+                    },
+                }));
+            };
+
+            // XP Learning
+            const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
+            const xpLearnChar = xpLearnCharId ? league.characters.find(c => c.id === xpLearnCharId) : null;
+
+            const getMaxLearnedForChar = (character) => character.level || 1;
+
+            const getLearnedCount = (character) => (character.learnedAbilities || []).length;
+
+            const xpCostForChar = (character) => character.level || 1;
+
+            const learnAbility = (character, abilityName) => {
+                const cost = xpCostForChar(character);
+                if (xp < cost) return;
+                if (getLearnedCount(character) >= getMaxLearnedForChar(character)) return;
+                const updated = {
+                    ...character,
+                    abilities: [...character.abilities, abilityName],
+                    learnedAbilities: [...(character.learnedAbilities || []), abilityName],
+                };
+                // Check if ability has pick target
+                const ability = allAbPool.find(a => a.name === abilityName);
+                if (ability) {
+                    const hasPick = ability.effects.some(e => typeof e.target === 'string' && e.target.startsWith('pick'));
+                    if (hasPick) {
+                        updated.abilityChoices = { ...updated.abilityChoices, [abilityName]: [] };
+                    }
+                }
+                updateCharacter(updated);
+                setCampaignField('xp', xp - cost);
+                setXpLearnCharId(null);
+            };
+
+            // Ability browser for XP learning
+            const xpBrowseAbilities = xpLearnChar ? (() => {
+                const template = getTemplate(gameData, xpLearnChar.type);
+                if (!template) return [];
+                const maxLevel = template.maxAbilityLevel;
+                let available = getAbilitiesForLevel(gameData, maxLevel);
+                if (xpLearnChar.type === 'gang' && gameData.abilities.gang) {
+                    available = [...available, ...gameData.abilities.gang];
+                }
+                return available.filter(ab => {
+                    if (xpSearchTerm && !ab.name.toLowerCase().includes(xpSearchTerm.toLowerCase()) && !ab.description.toLowerCase().includes(xpSearchTerm.toLowerCase())) return false;
+                    if (xpLevelFilter > 0 && ab.level !== xpLevelFilter) return false;
+                    return true;
+                });
+            })() : [];
+
+            // Counter button component
+            const CounterBtn = ({ onClick, children, disabled }) => (
+                <button onClick={onClick} disabled={disabled}
+                    className="w-8 h-8 rounded flex items-center justify-center typewriter text-sm cursor-pointer hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed"
+                    style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                    {children}
+                </button>
+            );
+
+            return (
+                <div className="flex-1 overflow-y-auto p-6">
+                    <h2 className="brand-font text-xl font-bold mb-6" style={{color:'var(--ink)'}}>Campaign Dossier</h2>
+
+                    {/* ---- REPUTATION TRACKER ---- */}
+                    <div className="mb-8 p-4 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Reputation</div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="typewriter text-sm" style={{color:'var(--ink-light)'}}>Current:</span>
+                            <input type="number" value={reputation} min={0}
+                                onChange={e => setCampaignField('reputation', Math.max(0, parseInt(e.target.value) || 0))}
+                                className="w-24 px-2 py-1 rounded typewriter text-lg text-center outline-none"
+                                style={{background:'var(--paper)', border:'2px solid var(--border)', color:'var(--ink)'}} />
+                        </div>
+
+                        {/* Unlocked milestones */}
+                        {unlocked.length > 0 && (
+                            <div className="mb-3">
+                                <div className="typewriter text-xs mb-2" style={{color:'var(--ink-faded)'}}>Unlocked Milestones:</div>
+                                <div className="space-y-1">
+                                    {unlocked.map(m => (
+                                        <div key={m.threshold} className="p-2 rounded flex items-start gap-2" style={{background:'var(--paper)', border:'1px solid var(--border)'}}>
+                                            <span className="typewriter text-xs px-1.5 py-0.5 rounded flex-shrink-0" style={{background:'var(--leather)', color:'var(--paper)'}}>{m.threshold}</span>
+                                            <div>
+                                                <span className="brand-font text-sm font-bold" style={{color:'var(--ink)'}}>{m.name}</span>
+                                                <div className="typewriter text-xs" style={{color:'var(--ink-light)'}}>{m.description}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Upcoming milestone */}
+                        {upcoming && (
+                            <div className="p-2 rounded" style={{background:'var(--paper)', border:'1px dashed var(--border)'}}>
+                                <div className="typewriter text-xs mb-1" style={{color:'var(--ink-faded)'}}>Next Milestone at {upcoming.threshold} Rep:</div>
+                                <span className="brand-font text-sm font-bold" style={{color:'var(--ink-faded)'}}>{upcoming.name}</span>
+                                <div className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{upcoming.description}</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ---- RESOURCE TRACKER ---- */}
+                    <div className="mb-8 p-4 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Resources</div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {['tips', 'backup', 'gear', 'contacts'].map(key => (
+                                <div key={key} className="flex items-center justify-between p-2 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)'}}>
+                                    <span className="typewriter text-sm capitalize" style={{color:'var(--ink-light)'}}>{key}</span>
+                                    <div className="flex items-center gap-2">
+                                        <CounterBtn onClick={() => setResource(key, (resources[key] || 0) - 1)} disabled={(resources[key] || 0) <= 0}>-</CounterBtn>
+                                        <span className="brand-font text-lg font-bold w-8 text-center" style={{color:'var(--ink)'}}>{resources[key] || 0}</span>
+                                        <CounterBtn onClick={() => setResource(key, (resources[key] || 0) + 1)}>+</CounterBtn>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ---- XP SYSTEM ---- */}
+                    <div className="mb-8 p-4 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Experience Points</div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="typewriter text-sm" style={{color:'var(--ink-light)'}}>XP Pool:</span>
+                            <CounterBtn onClick={() => setCampaignField('xp', Math.max(0, xp - 1))} disabled={xp <= 0}>-</CounterBtn>
+                            <span className="brand-font text-xl font-bold w-10 text-center" style={{color:'var(--ink)'}}>{xp}</span>
+                            <CounterBtn onClick={() => setCampaignField('xp', xp + 1)}>+</CounterBtn>
+                        </div>
+
+                        {league.characters.length > 0 && (
+                            <div>
+                                <div className="typewriter text-xs mb-2" style={{color:'var(--ink-faded)'}}>Learn Abilities via XP:</div>
+                                <div className="space-y-2">
+                                    {league.characters.map(c => {
+                                        const template = getTemplate(gameData, c.type);
+                                        const maxLearned = getMaxLearnedForChar(c);
+                                        const learned = getLearnedCount(c);
+                                        const cost = xpCostForChar(c);
+                                        const canLearn = learned < maxLearned && xp >= cost;
+                                        const baseSlots = template ? template.abilitySlots : 0;
+                                        return (
+                                            <div key={c.id} className="flex items-center justify-between p-2 rounded" style={{background:'var(--paper)', border:'1px solid var(--border)'}}>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="typewriter text-xs uppercase px-1 py-0.5 rounded" style={{background:LEVEL_COLORS[c.type], color:'var(--paper)'}}>{LEVEL_LABELS[c.type]}</span>
+                                                        <span className="brand-font text-sm font-bold" style={{color:'var(--ink)'}}>{c.name || 'Unnamed'}</span>
+                                                    </div>
+                                                    <div className="typewriter text-xs mt-1" style={{color:'var(--ink-faded)'}}>
+                                                        Abilities: {c.abilities.length}/{baseSlots + learned} (base: {baseSlots}, learned: {learned}/{maxLearned}) | Cost: {cost} XP
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => { setXpLearnCharId(c.id); setXpSearchTerm(''); setXpLevelFilter(0); }}
+                                                    disabled={!canLearn}
+                                                    className="px-3 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                                                    Learn Ability
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {league.characters.length === 0 && (
+                            <div className="text-xs typewriter p-3 rounded text-center" style={{background:'var(--paper)', color:'var(--ink-faded)', border:'1px dashed var(--border)'}}>
+                                Add characters to your league to spend XP.
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ---- SECRET SOCIETIES ---- */}
+                    {reputation >= 30 && (
+                        <div className="mb-8 p-4 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                            <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Secret Societies</div>
+
+                            {/* No society joined yet */}
+                            {!cs.secretSociety && (
+                                <div>
+                                    <div className="typewriter text-xs mb-3" style={{color:'var(--ink-faded)'}}>Choose a Secret Society to join:</div>
+                                    <div className="space-y-2">
+                                        {societies.map(society => (
+                                            <div key={society.name}
+                                                onClick={() => joinSociety(society.name)}
+                                                className="p-3 rounded cursor-pointer transition-all hover:opacity-80"
+                                                style={{background:'var(--paper)', border:'2px solid var(--border)'}}>
+                                                <div className="brand-font text-sm font-bold" style={{color:'var(--ink)'}}>{society.name}</div>
+                                                <div className="typewriter text-xs mt-1" style={{color:'var(--ink-light)'}}>
+                                                    {society.ranks.length} ranks | First perk at Rep {society.ranks[0]?.reputationRequired || 30}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Society joined */}
+                            {currentSociety && (
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>{currentSociety.name}</div>
+                                        <button onClick={leaveSociety}
+                                            className="typewriter text-xs cursor-pointer hover:opacity-70 underline"
+                                            style={{color:'var(--crimson)', background:'none', border:'none'}}>
+                                            Leave Society
+                                        </button>
+                                    </div>
+
+                                    {currentSociety.ranks.map(rank => {
+                                        const isUnlocked = reputation >= rank.reputationRequired;
+                                        const selectedPerk = societyPerks.find(p => p.rank === rank.rank);
+                                        return (
+                                            <div key={rank.rank} className="mb-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="typewriter text-xs uppercase tracking-wider" style={{color: isUnlocked ? 'var(--crimson)' : 'var(--ink-faded)'}}>
+                                                        Rank {rank.rank} — Rep {rank.reputationRequired}
+                                                    </span>
+                                                    {!isUnlocked && (
+                                                        <span className="typewriter text-xs px-1 rounded" style={{background:'var(--border)', color:'var(--ink-faded)'}}>Locked</span>
+                                                    )}
+                                                </div>
+                                                {isUnlocked && (
+                                                    <div className="space-y-1">
+                                                        {rank.perks.map(perk => {
+                                                            const isSelected = selectedPerk?.name === perk.name;
+                                                            return (
+                                                                <div key={perk.name}
+                                                                    onClick={() => selectSocietyPerk(rank.rank, perk.name)}
+                                                                    className="p-2 rounded cursor-pointer transition-all hover:opacity-80"
+                                                                    style={{
+                                                                        background: isSelected ? 'var(--leather)' : 'var(--paper)',
+                                                                        border: isSelected ? '2px solid var(--crimson)' : '1px solid var(--border)',
+                                                                    }}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {isSelected && <span style={{color:'var(--paper)'}}>&#10003;</span>}
+                                                                        <span className="brand-font text-sm font-bold" style={{color: isSelected ? 'var(--paper)' : 'var(--ink)'}}>{perk.name}</span>
+                                                                    </div>
+                                                                    <div className="typewriter text-xs mt-1" style={{color: isSelected ? 'var(--paper-dark)' : 'var(--ink-light)'}}>{perk.description}</div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                                {!isUnlocked && (
+                                                    <div className="typewriter text-xs p-2 rounded" style={{background:'var(--paper)', border:'1px dashed var(--border)', color:'var(--ink-faded)'}}>
+                                                        Reach {rank.reputationRequired} reputation to unlock rank {rank.rank} perks.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ---- HARROWING ESCAPE ROLLER ---- */}
+                    {gameData.harrowingEscape && <HarrowingEscapeRoller gameData={gameData} />}
+
+                    {/* ---- XP ABILITY PICKER MODAL ---- */}
+                    {xpLearnChar && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.6)'}} onClick={() => setXpLearnCharId(null)}>
+                            <div className="p-4 rounded-lg w-full max-w-lg max-h-[80vh] flex flex-col" style={{background:'var(--paper)', border:'2px solid var(--border)'}} onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <h3 className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>Learn Ability via XP</h3>
+                                        <div className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>
+                                            {xpLearnChar.name || 'Unnamed'} | Cost: {xpCostForChar(xpLearnChar)} XP | Pool: {xp} XP
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setXpLearnCharId(null)} className="cursor-pointer hover:opacity-70" style={{color:'var(--ink-faded)'}}>
+                                        <Icons.X size={18} />
+                                    </button>
+                                </div>
+                                <div className="flex gap-2 mb-3">
+                                    <div className="flex-1 relative">
+                                        <Icons.Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2" style={{color:'var(--ink-faded)'}} />
+                                        <input value={xpSearchTerm} onChange={e => setXpSearchTerm(e.target.value)}
+                                            placeholder="Search abilities..."
+                                            className="w-full pl-7 pr-2 py-1.5 rounded typewriter text-sm outline-none"
+                                            style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}} />
+                                    </div>
+                                    <select value={xpLevelFilter} onChange={e => setXpLevelFilter(Number(e.target.value))}
+                                        className="px-2 py-1 rounded typewriter text-sm cursor-pointer outline-none"
+                                        style={{background:'var(--paper-dark)', border:'1px solid var(--border)', color:'var(--ink)'}}>
+                                        <option value={0}>All Levels</option>
+                                        {Array.from({length: xpLearnChar.level}, (_,i) => i+1).map(l => <option key={l} value={l}>Level {l}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1 overflow-y-auto space-y-1">
+                                    {xpBrowseAbilities.map(ab => {
+                                        const errors = validateAbilityForCharacter(ab.name, xpLearnChar, gameData);
+                                        const blocked = errors.length > 0;
+                                        return (
+                                            <button key={ab.name}
+                                                disabled={blocked}
+                                                onClick={() => learnAbility(xpLearnChar, ab.name)}
+                                                className="w-full text-left p-2 rounded cursor-pointer transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="brand-font font-bold text-sm" style={{color: blocked ? 'var(--ink-faded)' : 'var(--ink)'}}>{ab.name}</span>
+                                                    <span className="typewriter text-xs px-1 rounded" style={{background:'var(--leather)', color:'var(--paper)'}}>L{ab.level}</span>
+                                                </div>
+                                                <div className="typewriter text-xs mt-0.5" style={{color:'var(--ink-faded)'}}>{ab.description}</div>
+                                                {blocked && <div className="typewriter text-xs mt-0.5" style={{color:'var(--crimson)'}}>{errors.join(' | ')}</div>}
+                                            </button>
+                                        );
+                                    })}
+                                    {xpBrowseAbilities.length === 0 && (
+                                        <div className="text-center typewriter text-sm py-4" style={{color:'var(--ink-faded)'}}>No matching abilities</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 5k. PRINTABLE ROSTER
         // ==========================================
         const PrintableRoster = ({ league, gameData }) => {
             const totalSlots = getTotalSlots(league, gameData);
@@ -1697,9 +2521,46 @@
                         </div>
                         {activeGenre && (
                             <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace', marginTop:'4px', color:'#555'}}>
-                                Genre Rules: {activeGenre.modifiers.map(m => m.name).join(', ')}
+                                <div style={{fontWeight:'bold', marginBottom:'2px'}}>Genre: {activeGenre.name}</div>
+                                {activeGenre.modifiers.map(mod => (
+                                    <div key={mod.name} style={{marginLeft:'12px', marginBottom:'2px'}}>
+                                        <span style={{fontWeight:'bold'}}>{mod.name}</span> — {mod.description}
+                                    </div>
+                                ))}
                             </div>
                         )}
+                        {(() => {
+                            const rules = league.optionalRules || {};
+                            const allSettings = [
+                                { key: 'weapons', label: 'Weapons' },
+                                { key: 'supers', label: 'Supers' },
+                                ...(gameData.optionalSettings || []).map(s => ({ key: s.name, label: s.label })),
+                            ];
+                            const active = allSettings.filter(s => rules[s.key]);
+                            if (active.length === 0) return null;
+                            return (
+                                <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace', marginTop:'4px', color:'#555'}}>
+                                    Optional Rules: {active.map(s => s.label).join(', ')}
+                                </div>
+                            );
+                        })()}
+                        {(() => {
+                            const cs = league.campaignState;
+                            if (!cs) return null;
+                            const hasData = cs.reputation > 0 || cs.xp > 0 || cs.secretSociety ||
+                                Object.values(cs.resources || {}).some(v => v > 0);
+                            if (!hasData) return null;
+                            return (
+                                <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', marginTop:'4px', borderTop:'1px solid #ccc', paddingTop:'4px'}}>
+                                    {cs.reputation > 0 && <span>Reputation: {cs.reputation}</span>}
+                                    {cs.xp > 0 && <span> | XP: {cs.xp}</span>}
+                                    {Object.entries(cs.resources || {}).filter(([,v]) => v > 0).map(([k,v]) => (
+                                        <span key={k}> | {k.charAt(0).toUpperCase() + k.slice(1)}: {v}</span>
+                                    ))}
+                                    {cs.secretSociety && <span> | Society: {cs.secretSociety}</span>}
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* Character Cards */}
@@ -1721,6 +2582,7 @@
                                         </div>
                                         {template && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Health: {template.health}</div>}
                                         {character.type === 'gang' && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Models: {character.gangModels || 5}</div>}
+                                        {character.weapon && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Weapon: {character.weapon}</div>}
                                     </div>
                                 </div>
 
@@ -1747,21 +2609,59 @@
                                 )}
 
                                 {/* Abilities */}
-                                {(character.abilities.length > 0 || character.freeAbilities.length > 0) && (
-                                    <div style={{fontSize:'11px'}}>
-                                        <div style={{fontFamily:'Special Elite, monospace', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'4px', paddingBottom:'2px'}}>Abilities</div>
-                                        {[...character.abilities, ...character.freeAbilities].map(aName => {
-                                            const ab = allAbPool.find(a => a.name === aName);
-                                            const flavour = character.abilityFlavourNames?.[aName];
-                                            return (
-                                                <div key={aName} style={{marginBottom:'4px'}}>
-                                                    <span style={{fontWeight:'bold'}}>{flavour ? `${flavour} (${aName})` : aName}</span>
-                                                    {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                {(() => {
+                                    const isEpicChar = character.type === 'epic';
+                                    const epicAbNames = isEpicChar ? (gameData.abilities.epic || []).map(a => a.name) : [];
+                                    const regularAbs = isEpicChar ? character.abilities.filter(a => !epicAbNames.includes(a)) : character.abilities;
+                                    const epicAbs = isEpicChar ? character.abilities.filter(a => epicAbNames.includes(a)) : [];
+                                    const freeAbs = character.freeAbilities || [];
+                                    const hasAny = character.abilities.length > 0 || freeAbs.length > 0;
+                                    if (!hasAny) return null;
+                                    return (
+                                        <div style={{fontSize:'11px'}}>
+                                            <div style={{fontFamily:'Special Elite, monospace', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'4px', paddingBottom:'2px'}}>Abilities</div>
+                                            {regularAbs.map(aName => {
+                                                const ab = allAbPool.find(a => a.name === aName);
+                                                const flavour = character.abilityFlavourNames?.[aName];
+                                                return (
+                                                    <div key={aName} style={{marginBottom:'4px'}}>
+                                                        <span style={{fontWeight:'bold'}}>{flavour ? `${flavour} (${aName})` : aName}</span>
+                                                        {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                                    </div>
+                                                );
+                                            })}
+                                            {epicAbs.length > 0 && (
+                                                <div style={{marginTop:'6px'}}>
+                                                    <div style={{fontFamily:'Special Elite, monospace', fontStyle:'italic', fontSize:'10px', color:'#8b1a1a', marginBottom:'2px'}}>Epic Abilities</div>
+                                                    {epicAbs.map(aName => {
+                                                        const ab = allAbPool.find(a => a.name === aName);
+                                                        return (
+                                                            <div key={aName} style={{marginBottom:'4px'}}>
+                                                                <span style={{fontWeight:'bold', color:'#8b1a1a'}}>{aName}</span>
+                                                                {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                            )}
+                                            {freeAbs.length > 0 && (
+                                                <div style={{marginTop:'6px'}}>
+                                                    <div style={{fontFamily:'Special Elite, monospace', fontStyle:'italic', fontSize:'10px', color:'#555', marginBottom:'2px'}}>Free Abilities</div>
+                                                    {freeAbs.map(aName => {
+                                                        const ab = allAbPool.find(a => a.name === aName);
+                                                        return (
+                                                            <div key={aName} style={{marginBottom:'4px'}}>
+                                                                <span style={{fontWeight:'bold'}}>{aName}</span>
+                                                                {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
+                                                                <span style={{marginLeft:'4px', fontSize:'9px', background:'#e8f5e9', border:'1px solid #aaa', borderRadius:'2px', padding:'0 3px', color:'#2a6e5a'}}>free</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         );
                     })}
@@ -1892,7 +2792,7 @@
             const [showLeagueSelector, setShowLeagueSelector] = useState(true);
             const [selectedCharId, setSelectedCharId] = useState(null);
             const [showAddModal, setShowAddModal] = useState(false);
-            const [activeView, setActiveView] = useState(null); // null, 'character', 'perks', 'associates'
+            const [activeView, setActiveView] = useState(null); // null, 'character', 'perks', 'associates', 'campaign', 'settings'
             const [toast, setToast] = useState(null);
 
             const showToast = (msg, type='info') => { setToast({msg, type}); setTimeout(() => setToast(null), 3000); };
@@ -1919,6 +2819,7 @@
                 if (type === 'ally') {
                     SKILLS.forEach(s => { newChar.skillAssignments[s] = { ...newChar.skillAssignments[s], diceType: 'd6' }; });
                 }
+                // Epic: already has freeAbilities: ['Monster'] and extraAbilitySlots: 0 from EMPTY_CHARACTER
                 updateLeague(l => ({ ...l, characters: [...l.characters, newChar] }));
                 setSelectedCharId(newChar.id);
                 setActiveView('character');
@@ -1958,6 +2859,12 @@
                 }
                 if (activeView === 'associates') {
                     return <AssociateBuilder league={league} gameData={gameData} updateLeague={updateLeague} />;
+                }
+                if (activeView === 'campaign') {
+                    return <CampaignPanel league={league} gameData={gameData} updateLeague={updateLeague} updateCharacter={updateCharacter} />;
+                }
+                if (activeView === 'settings') {
+                    return <SettingsPanel league={league} gameData={gameData} updateLeague={updateLeague} />;
                 }
                 if (selectedChar) {
                     return (
