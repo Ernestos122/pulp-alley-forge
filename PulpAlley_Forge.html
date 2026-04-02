@@ -2531,16 +2531,25 @@
                         )}
                         {(() => {
                             const rules = league.optionalRules || {};
+                            const coreDescriptions = {
+                                weapons: 'Characters may equip weapons (Ranged and Melee). Each character may carry one weapon.',
+                                supers: 'Allows Epic characters in the league roster. Epic characters cost 5 roster slots and have access to Epic Abilities.',
+                            };
                             const allSettings = [
-                                { key: 'weapons', label: 'Weapons' },
-                                { key: 'supers', label: 'Supers' },
-                                ...(gameData.optionalSettings || []).map(s => ({ key: s.name, label: s.label })),
+                                { key: 'weapons', label: 'Weapons', description: coreDescriptions.weapons },
+                                { key: 'supers', label: 'Supers', description: coreDescriptions.supers },
+                                ...(gameData.optionalSettings || []).map(s => ({ key: s.name, label: s.label, description: s.description })),
                             ];
                             const active = allSettings.filter(s => rules[s.key]);
                             if (active.length === 0) return null;
                             return (
                                 <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace', marginTop:'4px', color:'#555'}}>
-                                    Optional Rules: {active.map(s => s.label).join(', ')}
+                                    <div style={{fontWeight:'bold', marginBottom:'2px'}}>Optional Rules:</div>
+                                    {active.map(s => (
+                                        <div key={s.key} style={{marginLeft:'12px', marginBottom:'2px'}}>
+                                            <span style={{fontWeight:'bold'}}>{s.label}</span> — {s.description}
+                                        </div>
+                                    ))}
                                 </div>
                             );
                         })()}
