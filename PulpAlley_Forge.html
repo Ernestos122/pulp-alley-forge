@@ -2854,6 +2854,95 @@
         };
 
         // ==========================================
+        // 5m3. MORE PANEL (mobile genre/settings/export)
+        // ==========================================
+        const MorePanel = ({ league, gameData, updateLeague, onNavigate }) => {
+            const rules = league.optionalRules || {};
+            return (
+                <div className="flex-1 overflow-y-auto p-4" style={{background:'var(--paper)'}}>
+                    <h2 className="brand-font text-lg font-bold mb-4" style={{color:'var(--ink)'}}>League Settings</h2>
+
+                    {/* Genre Selector */}
+                    <div className="mb-4 p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Genre</div>
+                        <select
+                            value={league.genre || ''}
+                            onChange={(e) => updateLeague(l => ({...l, genre: e.target.value || null}))}
+                            className="w-full typewriter text-sm px-3 py-2 rounded cursor-pointer outline-none"
+                            style={{background:'var(--ink)', color:'var(--paper)', border:'1px solid var(--ink-faded)'}}>
+                            <option value="">Classic Pulp</option>
+                            {(gameData?.genres || []).map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
+                        </select>
+                        {league.genre && (() => {
+                            const genre = (gameData?.genres || []).find(g => g.name === league.genre);
+                            if (!genre) return null;
+                            return (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                    {(genre.modifiers || []).map(mod => (
+                                        <span key={mod.name} className="typewriter text-xs px-2 py-0.5 rounded" style={{background:'rgba(139,26,26,0.15)', color:'var(--crimson)', border:'1px solid rgba(139,26,26,0.3)'}}>
+                                            {mod.name}
+                                        </span>
+                                    ))}
+                                </div>
+                            );
+                        })()}
+                    </div>
+
+                    {/* Core Toggles */}
+                    <div className="mb-4 p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Core Rules</div>
+                        {[
+                            { key: 'weapons', label: 'Weapons', desc: 'Characters may equip weapons' },
+                            { key: 'supers', label: 'Supers', desc: 'Allows Epic characters' },
+                        ].map(({ key, label, desc }) => (
+                            <div key={key} className="flex items-center justify-between p-2 mb-1 rounded cursor-pointer hover:opacity-90"
+                                style={{background: rules[key] ? 'var(--leather)' : 'var(--paper)', border: `1px solid ${rules[key] ? 'var(--crimson)' : 'var(--border)'}`}}
+                                onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), [key]: !l.optionalRules?.[key]}}))}>
+                                <div>
+                                    <div className="brand-font text-sm font-bold" style={{color: rules[key] ? 'var(--paper)' : 'var(--ink)'}}>{label}</div>
+                                    <div className="typewriter text-xs" style={{color: rules[key] ? 'var(--paper-dark)' : 'var(--ink-faded)'}}>{desc}</div>
+                                </div>
+                                <div className="w-10 h-6 rounded-full relative flex-shrink-0 ml-2" style={{background: rules[key] ? 'var(--crimson)' : 'var(--border)'}}>
+                                    <div className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{background:'white', left: rules[key] ? '18px' : '2px'}} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Navigation Links */}
+                    <div className="mb-4 p-3 rounded" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>More</div>
+                        {[
+                            { key: 'associates', label: 'Associates', count: league.associates.length },
+                            { key: 'settings', label: 'Advanced Settings', count: Object.entries(rules).filter(([k,v]) => v && k !== 'weapons' && k !== 'supers').length },
+                        ].map(({ key, label, count }) => (
+                            <button key={key} onClick={() => onNavigate(key)}
+                                className="w-full text-left p-2 mb-1 rounded cursor-pointer hover:opacity-90 flex items-center justify-between"
+                                style={{background:'var(--paper)', border:'1px solid var(--border)'}}>
+                                <span className="brand-font text-sm font-bold" style={{color:'var(--ink)'}}>{label}</span>
+                                <span className="typewriter text-xs" style={{color:'var(--ink-faded)'}}>{count > 0 ? `(${count})` : ''} ›</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                        <button onClick={() => exportLeagueJSON(league)}
+                            className="flex-1 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80 flex items-center justify-center gap-1"
+                            style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                            <Icons.Download size={14} /> Export
+                        </button>
+                        <button onClick={() => window.print()}
+                            className="flex-1 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80 flex items-center justify-center gap-1"
+                            style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
+                            <Icons.Printer size={14} /> Print
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
         // 6. LEAGUE SELECTOR COMPONENT
         // ==========================================
         const LeagueSelector = ({ gameData, onSelect, onCreate }) => {
