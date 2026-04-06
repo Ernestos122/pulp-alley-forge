@@ -643,18 +643,19 @@
         // ==========================================
         // 5b. TOPBAR COMPONENT
         // ==========================================
-        const TopBar = ({ league, updateLeague, onBack, gameData }) => (
+        const TopBar = ({ league, updateLeague, onBack, gameData, isMobile }) => (
             <div className="no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
                 <div className="p-2 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)'}}>
                             <Icons.ArrowLeft size={18} />
                         </button>
-                        <span className="typewriter text-sm tracking-widest hidden sm:inline" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>
+                        {!isMobile && <span className="typewriter text-sm tracking-widest" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>}
                     </div>
                     <div className="flex items-center gap-2">
                         <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
-                            className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px'}} />
+                            className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width: isMobile ? '140px' : '180px'}} />
+                        {!isMobile && (<>
                         <select
                             value={league.genre || ''}
                             onChange={(e) => updateLeague(l => ({...l, genre: e.target.value || null}))}
@@ -691,9 +692,10 @@
                         <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
                             <Icons.Printer size={16} />
                         </button>
+                        </>)}
                     </div>
                 </div>
-                {league.genre && (() => {
+                {!isMobile && league.genre && (() => {
                     const genre = (gameData?.genres || []).find(g => g.name === league.genre);
                     if (!genre) return null;
                     return (
