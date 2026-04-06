@@ -2753,6 +2753,38 @@
         };
 
         // ==========================================
+        // 5m. MOBILE TAB BAR
+        // ==========================================
+        const MobileTabBar = ({ activeTab, onTabChange, hasSelectedChar }) => {
+            const tabs = [
+                { key: 'roster', label: 'Roster', icon: <Icons.Users size={20} /> },
+                { key: 'editor', label: 'Editor', icon: <Icons.Edit2 size={20} />, dimmed: !hasSelectedChar },
+                { key: 'perks', label: 'Perks', icon: <Icons.Star size={20} /> },
+                { key: 'campaign', label: 'Campaign', icon: <Icons.FileText size={20} /> },
+                { key: 'more', label: 'More', icon: <Icons.MoreHorizontal size={20} /> },
+            ];
+            return (
+                <div className="no-print flex justify-around items-center py-1" style={{background:'var(--leather)', borderTop:'2px solid var(--crimson)', flexShrink:0}}>
+                    {tabs.map(tab => {
+                        const isActive = activeTab === tab.key;
+                        return (
+                            <button key={tab.key} onClick={() => onTabChange(tab.key)}
+                                className="flex flex-col items-center gap-0.5 px-2 py-1 cursor-pointer"
+                                style={{
+                                    color: isActive ? 'var(--crimson)' : tab.dimmed ? 'var(--ink-faded)' : 'var(--paper)',
+                                    opacity: tab.dimmed && !isActive ? 0.4 : 1,
+                                    background:'transparent', border:'none',
+                                }}>
+                                {tab.icon}
+                                <span className="typewriter" style={{fontSize:'9px'}}>{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            );
+        };
+
+        // ==========================================
         // 6. LEAGUE SELECTOR COMPONENT
         // ==========================================
         const LeagueSelector = ({ gameData, onSelect, onCreate }) => {
