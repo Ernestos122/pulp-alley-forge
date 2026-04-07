@@ -827,7 +827,7 @@
             );
         };
 
-        const RosterSidebar = ({ league, gameData, selectedCharId, onSelectChar, onOpenAddModal, activeView, onSetView }) => {
+        const RosterSidebar = ({ league, gameData, selectedCharId, onSelectChar, onOpenAddModal, activeView, onSetView, className }) => {
             const used = getUsedSlots(league, gameData);
             const total = getTotalSlots(league, gameData);
             const leaders = league.characters.filter(c => c.type === 'leader');
@@ -878,7 +878,7 @@
             };
 
             return (
-                <div className="w-60 overflow-y-auto p-3 no-print flex flex-col" style={{background:'var(--paper-dark)', borderRight:'2px solid var(--border)'}}>
+                <div className={`w-60 overflow-y-auto p-3 no-print flex flex-col ${className || ''}`} style={{background:'var(--paper-dark)', borderRight:'2px solid var(--border)'}}>
                     <SlotBar used={used} total={total} />
 
                     <div className="typewriter text-xs uppercase tracking-wider mb-2" style={{color:'var(--crimson)'}}>Field Operatives</div>
@@ -3388,8 +3388,7 @@
             const [showAddModal, setShowAddModal] = useState(false);
             const [activeView, setActiveView] = useState(null); // null, 'character', 'perks', 'associates', 'campaign', 'settings'
             const [toast, setToast] = useState(null);
-            const isMobile = useIsMobile();
-            const [mobileTab, setMobileTab] = useState('roster');
+            const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
             const showToast = (msg, type='info') => { setToast({msg, type}); setTimeout(() => setToast(null), 3000); };
 
@@ -3444,24 +3443,10 @@
                 if (view !== 'character') setSelectedCharId(null);
             }, []);
 
-            const handleMobileSelectChar = useCallback((id) => {
-                setSelectedCharId(id);
-                setActiveView('character');
-                setMobileTab('editor');
-            }, []);
-
-            const handleMobileTabChange = useCallback((tab) => {
-                setMobileTab(tab);
-                if (tab === 'perks') setActiveView('perks');
-                else if (tab === 'campaign') setActiveView('campaign');
-                else if (tab === 'roster') { setActiveView(null); }
-                else if (tab === 'editor') { setActiveView('character'); }
-                else if (tab === 'more') { setActiveView(null); }
-            }, []);
-
-            const handleMoreNavigate = useCallback((key) => {
-                setActiveView(key);
-                setMobileTab('more');
+            const handleMobileNavigate = useCallback((view) => {
+                setActiveView(view === 'roster' ? 'roster' : view);
+                if (view !== 'character') setSelectedCharId(null);
+                setMobileMenuOpen(false);
             }, []);
 
             if (!gameData) return <DataLoader onLoad={setGameData} />;
@@ -3470,6 +3455,9 @@
             const selectedChar = activeView === 'character' ? league.characters.find(c => c.id === selectedCharId) : null;
 
             const renderCenterPanel = () => {
+                if (activeView === 'roster') {
+                    return <MobileCharacterList league={league} gameData={gameData} onSelectChar={handleSelectChar} onOpenAddModal={() => setShowAddModal(true)} />;
+                }
                 if (activeView === 'perks') {
                     return <PerkBrowser league={league} gameData={gameData} updateLeague={updateLeague} />;
                 }
@@ -3503,68 +3491,40 @@
                 );
             };
 
-            const renderMobileContent = () => {
-                if (activeView === 'associates' || activeView === 'settings') {
-                    return (
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            <div className="p-2 flex items-center gap-2" style={{background:'var(--paper-dark)', borderBottom:'1px solid var(--border)'}}>
-                                <button onClick={() => { setActiveView(null); setMobileTab('more'); }} className="cursor-pointer hover:opacity-80 flex items-center gap-1" style={{color:'var(--crimson)', background:'transparent', border:'none'}}>
-                                    <Icons.ArrowLeft size={16} />
-                                    <span className="typewriter text-xs">Back</span>
-                                </button>
-                                <span className="typewriter text-xs uppercase tracking-wider" style={{color:'var(--ink-faded)'}}>{activeView === 'associates' ? 'Associates' : 'Advanced Settings'}</span>
-                            </div>
-                            <div className="flex-1 overflow-y-auto">
-                                {activeView === 'associates'
-                                    ? <AssociateBuilder league={league} gameData={gameData} updateLeague={updateLeague} />
-                                    : <SettingsPanel league={league} gameData={gameData} updateLeague={updateLeague} />
-                                }
-                            </div>
-                        </div>
-                    );
-                }
-
-                if (mobileTab === 'roster') {
-                    return <MobileRoster league={league} gameData={gameData} selectedCharId={selectedCharId} onSelectChar={handleMobileSelectChar} onOpenAddModal={() => setShowAddModal(true)} />;
-                }
-                if (mobileTab === 'editor') {
-                    const char = league.characters.find(c => c.id === selectedCharId);
-                    if (char) return <CharacterEditor key={char.id} character={char} gameData={gameData} league={league} onUpdate={updateCharacter} onDelete={(id) => { deleteCharacter(id); setMobileTab('roster'); }} />;
-                    return <EmptyState league={league} onAddLeader={() => addCharacter('leader')} onOpenAddModal={() => setShowAddModal(true)} />;
-                }
-                if (mobileTab === 'perks') return <PerkBrowser league={league} gameData={gameData} updateLeague={updateLeague} />;
-                if (mobileTab === 'campaign') return <CampaignPanel league={league} gameData={gameData} updateLeague={updateLeague} updateCharacter={updateCharacter} />;
-                if (mobileTab === 'more') return <MorePanel league={league} gameData={gameData} updateLeague={updateLeague} onNavigate={handleMoreNavigate} />;
-                return null;
-            };
-
             return (
                 <div className="h-full flex flex-col" style={{background:'var(--paper)'}}>
-                    <TopBar league={league} updateLeague={updateLeague} gameData={gameData} isMobile={isMobile} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); }} />
+                    <TopBar league={league} updateLeague={updateLeague} gameData={gameData}
+                        mobileMenuOpen={mobileMenuOpen}
+                        onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
+                        onMobileNavigate={handleMobileNavigate}
+                        onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); setMobileMenuOpen(false); }} />
 
-                    {isMobile ? (
-                        <div className="flex-1 overflow-y-auto no-print">
-                            {renderMobileContent()}
-                        </div>
-                    ) : (
-                        <div className="flex-1 overflow-hidden flex no-print">
-                            <RosterSidebar
-                                league={league} gameData={gameData}
-                                selectedCharId={selectedCharId}
-                                onSelectChar={handleSelectChar}
-                                onOpenAddModal={() => setShowAddModal(true)}
-                                activeView={activeView}
-                                onSetView={handleSetView}
-                            />
+                    <div className="flex-1 overflow-hidden flex no-print">
+                        <RosterSidebar className="desktop-sidebar"
+                            league={league} gameData={gameData}
+                            selectedCharId={selectedCharId}
+                            onSelectChar={handleSelectChar}
+                            onOpenAddModal={() => setShowAddModal(true)}
+                            activeView={activeView}
+                            onSetView={handleSetView}
+                        />
+                        <div className="flex-1 overflow-y-auto">
+                            {/* Mobile back button — shown only when viewing a character on mobile */}
+                            {activeView === 'character' && selectedChar && (
+                                <div className="mobile-back-btn p-2 items-center gap-2" style={{background:'var(--paper-dark)', borderBottom:'1px solid var(--border)', display:'none'}}>
+                                    <button onClick={() => { setActiveView('roster'); setSelectedCharId(null); }}
+                                        className="cursor-pointer hover:opacity-80 flex items-center gap-1 no-min-height"
+                                        style={{color:'var(--crimson)', background:'transparent', border:'none'}}>
+                                        <Icons.ArrowLeft size={16} />
+                                        <span className="typewriter text-xs">Back to Roster</span>
+                                    </button>
+                                </div>
+                            )}
                             {renderCenterPanel()}
                         </div>
-                    )}
+                    </div>
 
                     <PrintableRoster league={league} gameData={gameData} />
-
-                    {isMobile && (
-                        <MobileTabBar activeTab={mobileTab} onTabChange={handleMobileTabChange} hasSelectedChar={!!selectedCharId} />
-                    )}
 
                     {showAddModal && (
                         <AddCharacterModal
