@@ -2544,20 +2544,36 @@
         // 5k. PRINTABLE ROSTER
         // ==========================================
         const PrintableRoster = ({ league, gameData }) => {
+            const printSettings = league.printSettings || {};
             const totalSlots = getTotalSlots(league, gameData);
             const usedSlots = getUsedSlots(league, gameData);
             const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
             const activeGenre = league.genre ? (gameData?.genres || []).find(g => g.name === league.genre) : null;
 
+            const COMBAT_SKILLS = ['Brawl', 'Shoot', 'Dodge'];
+            const ACTION_SKILLS = ['Might', 'Finesse', 'Cunning'];
+            const HEALTH_TRACK = { 'd12': ['d12','d10','d8','d6','Down','Out'], 'd10': ['d10','d8','d6','Down','Out'], 'd8': ['d8','d6','Down','Out'], 'd6': ['d6','Down','Out'], 'd6*': ['d6','Out'], 'none': [] };
+
+            const getHealthDie = (character, template) => {
+                if (!template) return 'd6';
+                if (league.perks.includes('Duo') && character.type === 'sidekick') return 'd10';
+                return template.health;
+            };
+
+            // MTG card size: 63mm × 88mm (2.5" × 3.5")
+            const CardSt = { card: { breakInside:'avoid', pageBreakInside:'avoid', border:'1.5px solid #3b2a1a', borderRadius:'4px', background:'linear-gradient(145deg, #d4c5a9, #c4b48e)', padding:'0', overflow:'hidden', width:'63mm', height:'88mm', display:'flex', flexDirection:'column', fontFamily:'Special Elite, monospace', fontSize:'8px', color:'#2a1f0e', boxShadow:'1px 1px 2px rgba(0,0,0,0.2)', boxSizing:'border-box' } };
+
             return (
-                <div className="print-only" style={{fontFamily:'Georgia, serif', color:'#000', background:'#fff', padding:'16px'}}>
+                <div className="print-only" style={{fontFamily:'Georgia, serif', color:'#000', background:'#fff', padding:'8px'}}>
                     {/* Roster Header */}
-                    <div style={{borderBottom:'3px double #000', paddingBottom:'8px', marginBottom:'16px'}}>
-                        <h1 style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'28px', fontWeight:'bold', margin:'0 0 4px 0'}}>{league.name}</h1>
-                        <div style={{fontSize:'12px', fontFamily:'Special Elite, monospace'}}>
-                            Slots: {usedSlots}/{totalSlots}
-                            {league.genre && <span> | Genre: {league.genre}</span>}
-                            {league.perks.length > 0 && <span> | Perks: {league.perks.join(', ')}</span>}
+                    <div style={{borderBottom:'3px double #3b2a1a', paddingBottom:'6px', marginBottom:'12px'}}>
+                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
+                            <h1 style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'24px', fontWeight:'bold', margin:0, color:'#2a1f0e'}}>{league.name}</h1>
+                            <span style={{fontFamily:'Special Elite, monospace', fontSize:'11px', color:'#5a4a2e'}}>Slots: {usedSlots}/{totalSlots}</span>
+                        </div>
+                        <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace', color:'#5a4a2e', marginTop:'2px'}}>
+                            {league.genre && <span>Genre: {league.genre} | </span>}
+                            {league.perks.length > 0 && <span>Perks: {league.perks.join(', ')}</span>}
                         </div>
                         {activeGenre && (
                             <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace', marginTop:'4px', color:'#555'}}>
@@ -2612,128 +2628,155 @@
                         })()}
                     </div>
 
-                    {/* Character Cards */}
-                    {league.characters.map(character => {
-                        const template = getTemplate(gameData, character.type);
-                        const skills = computeCharacterSkills(character, gameData, activeGenre);
-                        return (
-                            <div key={character.id} className="print-card" style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', marginBottom:'16px', padding:'12px', background:'#fff'}}>
-                                <div style={{display:'flex', alignItems:'flex-start', gap:'12px', marginBottom:'8px'}}>
-                                    {character.image && (
-                                        <img src={character.image} style={{width:'48px', height:'48px', objectFit:'cover', borderRadius:'4px', border:'1px solid #666'}} />
-                                    )}
-                                    <div style={{flex:1}}>
-                                        <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                                            <span style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'18px', fontWeight:'bold'}}>{character.name || 'Unnamed'}</span>
-                                            <span style={{fontSize:'10px', fontFamily:'Special Elite, monospace', padding:'1px 6px', border:'1px solid #000', borderRadius:'3px', textTransform:'uppercase'}}>
-                                                {LEVEL_LABELS[character.type]}
-                                            </span>
-                                        </div>
-                                        {template && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Health: {template.health}</div>}
-                                        {character.type === 'gang' && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Models: {character.gangModels || 5}</div>}
-                                        {character.weapon && <div style={{fontSize:'11px', fontFamily:'Special Elite, monospace', color:'#444'}}>Weapon: {character.weapon}</div>}
+                    {/* Character Cards — 2 per row */}
+                    <div style={{display:'flex', flexWrap:'wrap', gap:'4mm', justifyContent:'flex-start'}}>
+                        {league.characters.map(character => {
+                            const template = getTemplate(gameData, character.type);
+                            const skills = computeCharacterSkills(character, gameData, activeGenre);
+                            const healthDie = getHealthDie(character, template);
+                            const healthTrack = HEALTH_TRACK[healthDie] || HEALTH_TRACK['d6'];
+                            const isActingLeader = league.actingLeaderId === character.id;
+
+                            const allAbs = [...(character.abilities || []), ...(character.freeAbilities || [])];
+                            const abDetails = allAbs.map(aName => {
+                                const ab = allAbPool.find(a => a.name === aName);
+                                const flavour = character.abilityFlavourNames?.[aName];
+                                const isFree = (character.freeAbilities || []).includes(aName);
+                                return { name: aName, flavour, description: ab?.description || '', isFree };
+                            });
+
+                            return (
+                                <div key={character.id} style={CardSt.card}>
+                                    {/* Card Top: Type + Name */}
+                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'3px 5px', borderBottom:'1px solid #a89060', background:'rgba(59,47,30,0.08)'}}>
+                                        <span style={{fontWeight:'bold', fontSize:'7px', textTransform:'uppercase', letterSpacing:'0.5px', color:'#8b1a1a'}}>
+                                            {LEVEL_LABELS[character.type]}{isActingLeader ? ' (Leader)' : ''}:
+                                        </span>
+                                        <span style={{fontFamily:'Playfair Display, Georgia, serif', fontWeight:'bold', fontSize:'10px'}}>{character.name || 'Unnamed'}</span>
                                     </div>
-                                </div>
 
-                                {/* Skill table */}
-                                {skills && (
-                                    <table style={{width:'100%', borderCollapse:'collapse', marginBottom:'8px', fontSize:'11px', fontFamily:'Special Elite, monospace'}}>
-                                        <thead>
-                                            <tr style={{borderBottom:'2px solid #000'}}>
-                                                <th style={{textAlign:'left', padding:'2px 6px', width:'80px'}}>Skill</th>
-                                                <th style={{textAlign:'center', padding:'2px 6px'}}>Final</th>
-                                                <th style={{textAlign:'left', padding:'2px 6px'}}>Notes</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {SKILLS.map(skill => (
-                                                <tr key={skill} style={{borderBottom:'1px solid #ccc'}}>
-                                                    <td style={{padding:'2px 6px', fontWeight:'bold'}}>{skill}</td>
-                                                    <td style={{padding:'2px 6px', textAlign:'center'}}>{skills[skill].display}</td>
-                                                    <td style={{padding:'2px 6px', fontSize:'9px', color:'#666'}}>{skills[skill].annotations.join(', ')}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-
-                                {/* Abilities */}
-                                {(() => {
-                                    const isEpicChar = character.type === 'epic';
-                                    const epicAbNames = isEpicChar ? (gameData.abilities.epic || []).map(a => a.name) : [];
-                                    const regularAbs = isEpicChar ? character.abilities.filter(a => !epicAbNames.includes(a)) : character.abilities;
-                                    const epicAbs = isEpicChar ? character.abilities.filter(a => epicAbNames.includes(a)) : [];
-                                    const freeAbs = character.freeAbilities || [];
-                                    const hasAny = character.abilities.length > 0 || freeAbs.length > 0;
-                                    if (!hasAny) return null;
-                                    return (
-                                        <div style={{fontSize:'11px'}}>
-                                            <div style={{fontFamily:'Special Elite, monospace', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'4px', paddingBottom:'2px'}}>Abilities</div>
-                                            {regularAbs.map(aName => {
-                                                const ab = allAbPool.find(a => a.name === aName);
-                                                const flavour = character.abilityFlavourNames?.[aName];
-                                                return (
-                                                    <div key={aName} style={{marginBottom:'4px'}}>
-                                                        <span style={{fontWeight:'bold'}}>{flavour ? `${flavour} (${aName})` : aName}</span>
-                                                        {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
-                                                    </div>
-                                                );
-                                            })}
-                                            {epicAbs.length > 0 && (
-                                                <div style={{marginTop:'6px'}}>
-                                                    <div style={{fontFamily:'Special Elite, monospace', fontStyle:'italic', fontSize:'10px', color:'#8b1a1a', marginBottom:'2px'}}>Epic Abilities</div>
-                                                    {epicAbs.map(aName => {
-                                                        const ab = allAbPool.find(a => a.name === aName);
-                                                        return (
-                                                            <div key={aName} style={{marginBottom:'4px'}}>
-                                                                <span style={{fontWeight:'bold', color:'#8b1a1a'}}>{aName}</span>
-                                                                {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
-                                                            </div>
-                                                        );
-                                                    })}
+                                    {/* Card Body: Image + Skills */}
+                                    <div style={{display:'flex', padding:'4px 5px', gap:'4px'}}>
+                                        {/* Left: Image */}
+                                        <div style={{width:'22mm', flexShrink:0}}>
+                                            {character.image ? (
+                                                <img src={character.image} style={{width:'22mm', height:'22mm', objectFit:'cover', borderRadius:'3px', border:'1px solid #a89060'}} />
+                                            ) : (
+                                                <div style={{width:'22mm', height:'22mm', borderRadius:'3px', border:'1px solid #a89060', background:'rgba(168,144,96,0.2)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a89060" strokeWidth="1" strokeLinecap="round"><circle cx="12" cy="8" r="5"/><path d="M3 21c0-4.97 4.03-9 9-9s9 4.03 9 9"/></svg>
                                                 </div>
                                             )}
-                                            {freeAbs.length > 0 && (
-                                                <div style={{marginTop:'6px'}}>
-                                                    <div style={{fontFamily:'Special Elite, monospace', fontStyle:'italic', fontSize:'10px', color:'#555', marginBottom:'2px'}}>Free Abilities</div>
-                                                    {freeAbs.map(aName => {
-                                                        const ab = allAbPool.find(a => a.name === aName);
-                                                        return (
-                                                            <div key={aName} style={{marginBottom:'4px'}}>
-                                                                <span style={{fontWeight:'bold'}}>{aName}</span>
-                                                                {ab && <span style={{color:'#444'}}> — {ab.description}</span>}
-                                                                <span style={{marginLeft:'4px', fontSize:'9px', background:'#e8f5e9', border:'1px solid #aaa', borderRadius:'2px', padding:'0 3px', color:'#2a6e5a'}}>free</span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
+                                            {/* Gang models — computed: 6 with Sixth-Man, else 5 */}
+                                            {character.type === 'gang' && <div style={{fontSize:'7px', color:'#5a4a2e', marginTop:'2px', textAlign:'center'}}>Models: {([...(character.abilities||[]), ...(character.freeAbilities||[])].includes('Sixth-Man')) ? 6 : 5}</div>}
                                         </div>
-                                    );
-                                })()}
-                            </div>
-                        );
-                    })}
+
+                                        {/* Right: Skills */}
+                                        {skills && (
+                                            <div style={{flex:1}}>
+                                                {/* Combat Skills — red/salmon */}
+                                                <div style={{background:'rgba(180,80,60,0.15)', border:'1px solid rgba(180,80,60,0.3)', borderRadius:'2px', padding:'2px 4px', marginBottom:'2px'}}>
+                                                    {COMBAT_SKILLS.map(skill => (
+                                                        <div key={skill} style={{display:'flex', justifyContent:'space-between', padding:'0.5px 0', fontSize:'8px'}}>
+                                                            <span style={{fontWeight:'bold', color:'#6b2a1a'}}>{skill}</span>
+                                                            <span style={{fontWeight:'bold'}}>{skills[skill]?.display || '\u2014'}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                {/* Action Skills — green */}
+                                                <div style={{background:'rgba(60,120,60,0.12)', border:'1px solid rgba(60,120,60,0.25)', borderRadius:'2px', padding:'2px 4px'}}>
+                                                    {ACTION_SKILLS.map(skill => (
+                                                        <div key={skill} style={{display:'flex', justifyContent:'space-between', padding:'0.5px 0', fontSize:'8px'}}>
+                                                            <span style={{fontWeight:'bold', color:'#2a5a2a'}}>{skill}</span>
+                                                            <span style={{fontWeight:'bold'}}>{skills[skill]?.display || '\u2014'}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Weapon — if equipped */}
+                                    {character.weapon && (() => {
+                                        const allWeapons = [...(gameData.weapons?.ranged||[]).map(w=>({...w,group:'Ranged'})), ...(gameData.weapons?.melee||[]).map(w=>({...w,group:'Melee'}))];
+                                        const wpn = allWeapons.find(w => w.name === character.weapon);
+                                        return (
+                                            <div style={{padding:'2px 5px', borderTop:'1px solid #a89060', fontSize:'7px', background:'rgba(139,26,26,0.05)'}}>
+                                                <span style={{fontWeight:'bold', color:'#8b1a1a'}}>{character.weapon}</span>
+                                                {wpn && <span style={{color:'#5a4a2e'}}> ({wpn.group}): {wpn.description}</span>}
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Abilities Section */}
+                                    <div style={{padding:'2px 5px', flex:1, borderTop:'1px solid #a89060', fontSize:'7px', lineHeight:'1.25', overflow:'hidden'}}>
+                                        {abDetails.length > 0 ? abDetails.map(ab => (
+                                            <div key={ab.name} style={{marginBottom:'1px'}}>
+                                                <span style={{fontWeight:'bold'}}>{ab.flavour ? ab.flavour : ab.name}</span>
+                                                {ab.flavour && <span style={{color:'#7a6a4e'}}> ({ab.name})</span>}
+                                                {ab.isFree && <span style={{color:'#2a6e5a'}}> [free]</span>}
+                                                : <span style={{color:'#5a4a2e'}}>{ab.description}</span>
+                                            </div>
+                                        )) : (
+                                            <div style={{color:'#a89060', fontStyle:'italic'}}>No abilities</div>
+                                        )}
+                                    </div>
+
+                                    {/* Health Track — bottom bar */}
+                                    {healthTrack.length > 0 && (
+                                        <div style={{display:'flex', alignItems:'center', borderTop:'1.5px solid #3b2a1a', background:'rgba(59,47,30,0.1)', marginTop:'auto'}}>
+                                            <span style={{padding:'2px 4px', fontWeight:'bold', fontSize:'7px', color:'#8b1a1a', whiteSpace:'nowrap'}}>Health:</span>
+                                            <div style={{display:'flex', flex:1}}>
+                                                {healthTrack.map((state, i) => {
+                                                    const isDown = state === 'Down';
+                                                    const isOut = state === 'Out';
+                                                    return (
+                                                        <div key={i} style={{
+                                                            flex:1, textAlign:'center', padding:'2px 1px', fontSize:'7px', fontWeight:'bold',
+                                                            borderLeft: i > 0 ? '1px solid #a89060' : 'none',
+                                                            color: isOut ? '#8b1a1a' : isDown ? '#8b6914' : '#2a1f0e',
+                                                            background: isOut ? 'rgba(139,26,26,0.1)' : isDown ? 'rgba(139,105,20,0.1)' : 'transparent',
+                                                        }}>
+                                                            {state}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Gang KO info — replaces health track */}
+                                    {character.type === 'gang' && (() => {
+                                        const allGangAbs = [...(character.abilities || []), ...(character.freeAbilities || [])];
+                                        const hasLoyal = allGangAbs.includes('Loyal');
+                                        const koThreshold = hasLoyal ? '\u22641 model' : '\u22642 models';
+                                        return (
+                                            <div style={{display:'flex', alignItems:'center', borderTop:'1.5px solid #3b2a1a', background:'rgba(59,47,30,0.1)', marginTop:'auto', padding:'2px 4px'}}>
+                                                <span style={{fontWeight:'bold', fontSize:'7px', color:'#8b1a1a', whiteSpace:'nowrap', marginRight:'4px'}}>KO:</span>
+                                                <span style={{fontSize:'7px', color:'#2a1f0e'}}>Knocked out at {koThreshold}</span>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            );
+                        })}
+                    </div>
 
                     {/* Associates */}
                     {league.associates.length > 0 && (
-                        <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', background:'#fff'}}>
-                            <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'16px', fontWeight:'bold', borderBottom:'1px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Associates</div>
-                            {league.associates.map(assoc => {
-                                const assocAbilities = gameData.associateAbilities || [];
-                                return (
-                                    <div key={assoc.id} style={{marginBottom:'8px', fontSize:'11px', fontFamily:'Special Elite, monospace'}}>
-                                        <span style={{fontWeight:'bold'}}>{assoc.name || 'Unnamed'}</span>
-                                        {(assoc.abilities || []).map(aName => {
-                                            const ab = assocAbilities.find(a => a.name === aName);
-                                            return <div key={aName} style={{marginLeft:'12px', color:'#444'}}>{aName}{ab ? ` — ${ab.description}` : ''}</div>;
-                                        })}
-                                    </div>
-                                );
-                            })}
+                        <div style={{breakInside:'avoid', pageBreakInside:'avoid', marginTop:'12px', border:'2px solid #3b2a1a', borderRadius:'6px', padding:'10px', background:'linear-gradient(145deg, #d4c5a9, #c4b48e)'}}>
+                            <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'1px solid #a89060', marginBottom:'6px', paddingBottom:'3px', color:'#2a1f0e'}}>Associates</div>
+                            {league.associates.map(assoc => (
+                                <div key={assoc.id} style={{marginBottom:'6px', fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
+                                    <span style={{fontWeight:'bold'}}>{assoc.name || 'Unnamed'}: </span>
+                                    {(assoc.abilities || []).map((aName, i) => {
+                                        const ab = (gameData.associateAbilities || []).find(a => a.name === aName);
+                                        return <span key={aName}>{i > 0 ? ' | ' : ''}{aName}{ab ? ` \u2014 ${ab.description}` : ''}</span>;
+                                    })}
+                                </div>
+                            ))}
                         </div>
                     )}
 
+                    {/* === REFERENCE APPENDIX (added in Task 5) === */}
                 </div>
             );
         };
