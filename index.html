@@ -672,31 +672,31 @@
         // ==========================================
         // 5b. TOPBAR COMPONENT
         // ==========================================
-        const TopBar = ({ league, updateLeague, onBack, gameData, isMobile }) => (
+        const TopBar = ({ league, updateLeague, onBack, gameData, mobileMenuOpen, onToggleMobileMenu, onMobileNavigate }) => (
             <div className="no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
                 <div className="p-2 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)'}}>
+                        <button onClick={onBack} className="cursor-pointer hover:opacity-80" style={{color:'var(--paper)', background:'transparent', border:'none'}}>
                             <Icons.ArrowLeft size={18} />
                         </button>
-                        {!isMobile && <span className="typewriter text-sm tracking-widest" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>}
+                        <span className="typewriter text-sm tracking-widest desktop-only" style={{color:'var(--crimson)'}}>PULP ALLEY — LEAGUE DOSSIER</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <input value={league.name} onChange={(e) => updateLeague(l => ({...l, name: e.target.value}))}
-                            className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width: isMobile ? '140px' : '180px'}} />
-                        {!isMobile && (<>
+                            className="bg-transparent border-b typewriter text-sm px-1 outline-none" style={{color:'var(--paper)', borderColor:'var(--crimson)', width:'180px', flex:'1', minWidth:'100px', maxWidth:'200px'}} />
+                        {/* Desktop controls */}
                         <select
                             value={league.genre || ''}
                             onChange={(e) => updateLeague(l => ({...l, genre: e.target.value || null}))}
-                            className="typewriter text-xs px-2 py-1 rounded cursor-pointer outline-none"
+                            className="typewriter text-xs px-2 py-1 rounded cursor-pointer outline-none desktop-only no-min-height"
                             style={{background:'var(--ink)', color:'var(--paper)', border:'1px solid var(--ink-faded)'}}>
                             <option value="">Classic Pulp</option>
                             {(gameData?.genres || []).map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
                         </select>
                         <button
                             onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), weapons: !l.optionalRules?.weapons}}))}
-                            title="Weapons optional rule: characters may equip weapons"
-                            className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all"
+                            title="Weapons"
+                            className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all desktop-only no-min-height"
                             style={{
                                 background: league.optionalRules?.weapons ? 'var(--crimson)' : 'var(--ink)',
                                 color: 'var(--paper)',
@@ -706,8 +706,8 @@
                         </button>
                         <button
                             onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), supers: !l.optionalRules?.supers}}))}
-                            title="Supers optional rule: allows Epic characters"
-                            className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all"
+                            title="Supers"
+                            className="px-2 py-1 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all desktop-only no-min-height"
                             style={{
                                 background: league.optionalRules?.supers ? 'var(--crimson)' : 'var(--ink)',
                                 color: 'var(--paper)',
@@ -715,20 +715,25 @@
                             }}>
                             Supers
                         </button>
-                        <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
+                        <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80 desktop-only no-min-height" style={{color:'var(--paper)'}} title="Export JSON">
                             <Icons.Download size={16} />
                         </button>
-                        <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
+                        <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80 desktop-only no-min-height" style={{color:'var(--paper)'}} title="Print">
                             <Icons.Printer size={16} />
                         </button>
-                        </>)}
+                        {/* Mobile hamburger */}
+                        <button onClick={onToggleMobileMenu} className="mobile-menu-btn cursor-pointer p-1.5 rounded items-center no-min-height"
+                            style={{color:'var(--paper)', background: mobileMenuOpen ? 'var(--crimson)' : 'rgba(139,26,26,0.4)', border:'1px solid var(--crimson)', display:'none'}}>
+                            {mobileMenuOpen ? <Icons.X size={18} /> : <Icons.MoreHorizontal size={18} />}
+                        </button>
                     </div>
                 </div>
-                {!isMobile && league.genre && (() => {
+                {/* Desktop genre pills */}
+                {league.genre && (() => {
                     const genre = (gameData?.genres || []).find(g => g.name === league.genre);
                     if (!genre) return null;
                     return (
-                        <div className="px-3 pb-2 flex flex-wrap gap-2">
+                        <div className="px-3 pb-2 flex flex-wrap gap-2 desktop-only">
                             {(genre.modifiers || []).map(mod => (
                                 <span key={mod.name} className="typewriter text-xs px-2 py-0.5 rounded" style={{background:'rgba(139,26,26,0.3)', color:'var(--paper)', border:'1px solid rgba(139,26,26,0.5)'}}>
                                     {mod.name}: <span style={{color:'var(--border)'}}>{mod.description.length > 60 ? mod.description.slice(0,60) + '...' : mod.description}</span>
@@ -737,6 +742,69 @@
                         </div>
                     );
                 })()}
+                {/* Mobile dropdown panel */}
+                <div className={`mobile-dropdown ${mobileMenuOpen ? 'open' : ''}`} style={{background:'var(--leather)', padding:'8px 12px', borderTop:'1px solid var(--ink-faded)'}}>
+                    {/* Genre selector */}
+                    <select
+                        value={league.genre || ''}
+                        onChange={(e) => updateLeague(l => ({...l, genre: e.target.value || null}))}
+                        className="w-full typewriter text-sm px-3 py-2 rounded cursor-pointer outline-none mb-2"
+                        style={{background:'var(--ink)', color:'var(--paper)', border:'1px solid var(--ink-faded)'}}>
+                        <option value="">Classic Pulp</option>
+                        {(gameData?.genres || []).map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
+                    </select>
+                    {/* Weapons / Supers toggles */}
+                    <div className="flex gap-2 mb-3">
+                        <button
+                            onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), weapons: !l.optionalRules?.weapons}}))}
+                            className="flex-1 py-2 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all no-min-height"
+                            style={{
+                                background: league.optionalRules?.weapons ? 'var(--crimson)' : 'var(--ink)',
+                                color: 'var(--paper)',
+                                border: league.optionalRules?.weapons ? '1px solid var(--crimson)' : '1px solid var(--ink-faded)',
+                            }}>
+                            {league.optionalRules?.weapons ? '✓ ' : ''}Weapons
+                        </button>
+                        <button
+                            onClick={() => updateLeague(l => ({...l, optionalRules: {...(l.optionalRules || {}), supers: !l.optionalRules?.supers}}))}
+                            className="flex-1 py-2 rounded typewriter text-xs cursor-pointer hover:opacity-80 transition-all no-min-height"
+                            style={{
+                                background: league.optionalRules?.supers ? 'var(--crimson)' : 'var(--ink)',
+                                color: 'var(--paper)',
+                                border: league.optionalRules?.supers ? '1px solid var(--crimson)' : '1px solid var(--ink-faded)',
+                            }}>
+                            {league.optionalRules?.supers ? '✓ ' : ''}Supers
+                        </button>
+                    </div>
+                    {/* Navigation grid */}
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                        {[
+                            { key: 'roster', label: 'Roster', icon: <Icons.Users size={14} /> },
+                            { key: 'perks', label: 'Perks', icon: <Icons.Star size={14} /> },
+                            { key: 'associates', label: 'Associates', icon: <Icons.Users size={14} /> },
+                            { key: 'campaign', label: 'Campaign', icon: <Icons.FileText size={14} /> },
+                            { key: 'settings', label: 'Settings', icon: <Icons.Edit2 size={14} /> },
+                        ].map(({ key, label, icon }) => (
+                            <button key={key} onClick={() => onMobileNavigate(key)}
+                                className="py-3 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center justify-center gap-1 no-min-height"
+                                style={{background:'var(--paper)', color:'var(--ink)', border:'1px solid var(--border)'}}>
+                                {icon} {label}
+                            </button>
+                        ))}
+                        <div className="flex gap-2">
+                            <button onClick={() => { exportLeagueJSON(league); onToggleMobileMenu(); }}
+                                className="flex-1 py-3 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center justify-center gap-1 no-min-height"
+                                style={{background:'var(--ink)', color:'var(--paper)', border:'none'}}>
+                                <Icons.Download size={14} /> Export
+                            </button>
+                            <button onClick={() => { onToggleMobileMenu(); setTimeout(() => window.print(), 100); }}
+                                className="flex-1 py-3 rounded typewriter text-xs cursor-pointer hover:opacity-80 flex items-center justify-center gap-1 no-min-height"
+                                style={{background:'var(--ink)', color:'var(--paper)', border:'none'}}>
+                                <Icons.Printer size={14} /> Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
 
