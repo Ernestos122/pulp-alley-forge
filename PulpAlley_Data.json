@@ -1460,5 +1460,176 @@
     { "threshold": 125, "name": "Secret War", "description": "Select a Rank 4 perk from your Secret Society." },
     { "threshold": 150, "name": "Government Contacts", "description": "You gain +1 Tips before each scenario. This point may be saved or used for the upcoming scenario." },
     { "threshold": 175, "name": "Legendary", "description": "Your league earns +1 Experience. This point may be saved or used now. You earn an extra +1 XP each time you gain an additional 25 Reputation points." }
-  ]
+  ],
+  "resourcesOverview": {
+    "description": "Resource points (Tips, Contacts, Backup, and Gear) may be earned at the end of each scenario, based on the plot points (rewards) your league holds. During scenario set-up, you may spend some or all of your resource points to select assets for the upcoming scenario. Points are permanently removed when used. Assets do not carry over to the next scenario unless you pay again.",
+    "tips": [
+      { "name": "Tip-off", "description": "During a scenario, you may spend one Tips point at the start of any turn to draw +1 Fortune card." },
+      { "name": "Solid Leads", "description": "Before a scenario you may convert two of your Tips to one other resource — Backup, Contact, or Gear." },
+      { "name": "Associate Tip", "description": "Instead of rolling for an Associate, you may spend one Tips point to automatically pass a Support check." }
+    ],
+    "dominion": "If you select the Dominion perk, you gain access to Minions, Cult, and Gifts assets. However, you cannot use resource points to select from normal Backup, Contacts, or Gear tables. You may still spend Gear points on Gadgets, Vehicles, and Guns. You may also use Tips as normal."
+  },
+  "contactsAssets": [
+    { "name": "Friendly Local", "cost": 1, "description": "You gain one random level 1 Backup character." },
+    { "name": "Good Rumors", "cost": 1, "description": "You may draw one extra Fortune card on turn #1." },
+    { "name": "Snitch", "cost": 1, "description": "Shift your die-type up when rolling for starting Director." },
+    { "name": "A Few Maneuvers", "cost": 2, "description": "Your Leader gains: Mindgame — Roll an opposed Finesse check against the Director's Leader. If you win, you immediately become Director. May be used once per scenario." },
+    { "name": "Unexpected Ally", "cost": 2, "description": "You gain one random level 2 Backup character." },
+    { "name": "Savoir-Faire", "cost": 2, "description": "(one use) Your Leader may pass one challenge automatically — instead of rolling." },
+    { "name": "Informant", "cost": 3, "description": "Draw one Fortune card each time you become Director." },
+    { "name": "Quick Travel", "cost": 3, "description": "You may pick a Random Event — instead of rolling." },
+    { "name": "One Step Ahead", "cost": 3, "description": "Pick one of the following abilities for your Leader: Lucky Devil, Danger Sense, or Master of Disguise." },
+    { "name": "Disguise", "cost": 3, "description": "Your Leader starts in hiding. While hiding, you may discard one Fortune card to automatically win an opposed spotting check — instead of rolling. Cannot be used when attempting an ambush." },
+    { "name": "Double-Cross!", "cost": 4, "description": "Your Leader gains: Double-Cross — (one use) At the start of any turn, select one enemy character within 12\" of your Leader. That character immediately switches sides and is under your control for the remainder of the scenario. The targeted character keeps their current Health and conditions." }
+  ],
+  "gearAssets": [
+    { "name": "Diving Suit", "cost": 1, "description": "You gain the Aquatic ability." },
+    { "name": "Gadget X", "cost": 1, "description": "(one use) You automatically pass one Plot Point — instead of rolling." },
+    { "name": "Smoke Grenades", "cost": 1, "description": "(one use) As an action, place a 3\" (dia.) area within 6\". This area blocks line-of-sight until the end of the turn." },
+    { "name": "Utility Belt", "cost": 1, "description": "(one use) You automatically pass one Peril — instead of rolling." },
+    { "name": "Bulletproof Vest", "cost": 2, "description": "You always count as in cover." },
+    { "name": "Chemical X", "cost": 2, "description": "You gain one ability: Speedy, Eagle-Eyed, or Shadowy." },
+    { "name": "Explosives", "cost": 2, "description": "You gain: Plant Charge — Place a charge counter next to your base. Detonate — Place a 3\" burst centered on each of your charges, resolve as normal then remove charges." },
+    { "name": "Flight Pack", "cost": 2, "description": "You gain the Winged ability." },
+    { "name": "Deflector", "cost": 2, "description": "You gain the Agile ability." },
+    { "name": "Body Armor", "cost": 3, "description": "You gain the Armored ability." },
+    { "name": "Microgrenades", "cost": 3, "description": "You gain the Burst Fire ability." },
+    { "name": "Weapon X", "cost": 3, "description": "You gain one ability: Marksman or Fierce." },
+    { "name": "Experimental Jetpack", "cost": 4, "description": "(one use) Instead of moving normally, you may move to anywhere on the table, ignoring intervening terrain and characters. You encounter a peril at the destination." }
+  ],
+  "gadgets": {
+    "rules": "Each Gadget must be assigned to a specific character. You cannot select any Gadget more than once per scenario. Mishap: Each time you draw to determine the X number for a Gadget, check the story-icon in the bottom-right corner of the card. A mishap occurs when you draw the Alarm icon. The gadget does not function and is removed from play. You must immediately roll for the peril challenge on the same card.",
+    "assets": [
+      { "name": "Boom-Bot", "cost": 1, "description": "Add one Boom-Bot backup (Level 1, 1d6 all skills). Boom-Bot is knocked out if it activates over 12\" from its assigned character. BOOM: When Boom-Bot is knocked out, all characters within X\" must roll for the peril on the X card." },
+      { "name": "Ray Projector", "cost": 1, "description": "Once per turn, gain a +X Shoot bonus." },
+      { "name": "7-League Boots", "cost": 1, "description": "During your activation, you may move an extra X\" + 3\"." },
+      { "name": "Shock Gauntlet", "cost": 1, "description": "Once per turn, gain a +X Brawl bonus." },
+      { "name": "Sonic Spanner", "cost": 1, "description": "Instead of rolling for a challenge, you may automatically score X successes." },
+      { "name": "Tesla Shield", "cost": 2, "description": "When you take two or more hits, you may cancel X hits." },
+      { "name": "Phase Vest", "cost": 2, "description": "Instead of moving normally, remove your character and place a phase counter. On the next activation, place your character within X\" of the counter." },
+      { "name": "Disintegrator", "cost": 3, "description": "Once per turn, target one character within 12\". Target must roll X successes for a Health check or be immediately knocked out." },
+      { "name": "Death Ray", "cost": 3, "description": "Once per turn, gain a +X Shoot bonus. Maximum range 24\"." },
+      { "name": "Force Field", "cost": 3, "description": "At the start of your activation, place a X\" (dia.) force field centered on your base. All characters inside gain cover. The field lasts until your next activation." }
+    ]
+  },
+  "backupCharacters": {
+    "rules": "All assets are temporary, purchased for one scenario only. Skills not listed are 1d6. d6* means the character is knocked out when they fail a Health check instead of going down.",
+    "assets": [
+      { "name": "Level 1: Brawler", "cost": 1, "skills": "Brawl 2d6", "health": "d6*" },
+      { "name": "Level 1: Shooter", "cost": 1, "skills": "Shoot 2d6", "health": "d6*" },
+      { "name": "Level 1: Scout", "cost": 1, "skills": "Dodge 2d6", "health": "d6*" },
+      { "name": "Level 1: Animal", "cost": 1, "skills": "Brawl 2d6, Shoot no-dice, Dodge 2d6", "health": "d6*" },
+      { "name": "Level 2: Brawler", "cost": 2, "skills": "Brawl 3d6, Dodge 2d6", "health": "d6" },
+      { "name": "Level 2: Shooter", "cost": 2, "skills": "Shoot 3d6, Dodge 2d6", "health": "d6" },
+      { "name": "Level 2: Scout", "cost": 2, "skills": "Dodge 3d6, Finesse 2d6", "health": "d6" },
+      { "name": "Level 2: Animal", "cost": 2, "skills": "Brawl 3d6, Shoot no-dice, Dodge 3d6", "health": "d6" },
+      { "name": "Level 2: Gang (Armed)", "cost": 2, "skills": "Gang — Armed (see Gangs)", "health": "Gang" },
+      { "name": "Level 2: Gang (Dangerous)", "cost": 2, "skills": "Gang — Dangerous (see Gangs)", "health": "Gang" },
+      { "name": "Level 3: Brawler", "cost": 3, "skills": "Brawl 4d8, Shoot 2d6, Dodge 3d8, Might 4d8, Finesse 2d6, Cunning 2d6", "health": "d8" },
+      { "name": "Level 3: Shooter", "cost": 3, "skills": "Brawl 2d6, Shoot 4d8, Dodge 3d8, Might 2d6, Finesse 2d6, Cunning 4d8", "health": "d8" },
+      { "name": "Level 3: Scout", "cost": 3, "skills": "Brawl 2d6, Shoot 2d6, Dodge 4d8, Might 2d6, Finesse 4d8, Cunning 3d8", "health": "d8" },
+      { "name": "Level 3: Animal", "cost": 3, "skills": "Brawl 5d8, Shoot no-dice, Dodge 4d8, Might 3d8, Finesse 2d6, Cunning 2d6", "health": "d8" },
+      { "name": "Level 3: Custom", "cost": 4, "skills": "Create one Sidekick of your choice", "health": "TBD" }
+    ]
+  },
+  "mounts": {
+    "rules": "Mounts are not characters and cannot activate. Riders may move up to 16\" (instead of 12\") and may freely move away from an engaged enemy. Normally up to two characters (colleagues only) may ride the same mount. Loose mounts wander 1d8\" in a random direction at the end of each turn. A basic mount costs 1 Resource point (any type). Each additional mount ability costs +1 point of the listed type.",
+    "abilities": [
+      { "name": "Skimmer", "cost": 0, "description": "Ignores the rule for Loose Mounts." },
+      { "name": "Single-Rider", "cost": 0, "description": "Cannot carry more than one rider. Select one free ability: Firepower, Flying, Stalwart, or Watchful." },
+      { "name": "Aggressive", "cost": 1, "description": "Riders receive a +1 Brawl and -1 Dodge." },
+      { "name": "Blaze", "cost": 1, "description": "Riders gain the Short Burst ability. One rider per turn may perform this action while mounted." },
+      { "name": "Carapace", "cost": 1, "description": "Riders automatically pass all 1d Health checks. Mount cannot move over 6\" except to rush." },
+      { "name": "Defensive", "cost": 1, "description": "Riders receive a +1 Dodge and -1d Brawl." },
+      { "name": "Faithful", "cost": 1, "description": "(one per league) Once per game, at the start of any turn, place this mount 1d8\" away from your Leader." },
+      { "name": "Firepower", "cost": 1, "description": "Riders gain +1 Shoot if mount is pointing directly at the target." },
+      { "name": "Flying", "cost": 1, "description": "Riders gain the Winged ability." },
+      { "name": "Large", "cost": 1, "description": "Mount may carry 2 extra colleagues. Cannot move over 12\"." },
+      { "name": "Stalwart", "cost": 1, "description": "The first time this mount would be removed from play, the result is ignored and the mount remains in play." },
+      { "name": "Sturdy", "cost": 1, "description": "Riders gain the Rugged ability. If you roll a 1 on the re-roll, the character is injured and the mount is removed from play." },
+      { "name": "Trusty", "cost": 1, "description": "This mount never wanders." },
+      { "name": "Watchful", "cost": 1, "description": "Riders gain a +1 bonus for all perils and spotting checks." }
+    ]
+  },
+  "vehicles": {
+    "rules": "Driving cannot be combined with normal movement. Cruise: Move up to 8\" in a straight line forward (not an action). Maneuver: Move up to 8\" in any direction (action, cannot combine with other actions or fighting). Passengers: Total characters a vehicle may safely carry, including driver. Extra characters equal to Size may hang-on (perilous). Control checks required when: hit by burst, maneuvering in hazardous area, driver fails Health check, or vehicle collision.",
+    "basic": [
+      { "name": "Motorcycle", "size": 1, "passengers": 1, "reliability": "d6", "special": "Nimble, Open", "cost": 1 },
+      { "name": "Motorcycle & Sidecar", "size": 1, "passengers": 2, "reliability": "d6", "special": "Open", "cost": 1 },
+      { "name": "Roadster", "size": 2, "passengers": 2, "reliability": "d8", "special": "Racer", "cost": 2 },
+      { "name": "Coupe / Sedan", "size": 2, "passengers": 4, "reliability": "d8", "special": "—", "cost": 2 },
+      { "name": "Pickup", "size": 2, "passengers": 6, "reliability": "d8", "special": "Lumbering", "cost": 2 },
+      { "name": "Cargo Truck", "size": 3, "passengers": 10, "reliability": "d10", "special": "Lumbering", "cost": 3 }
+    ],
+    "specials": [
+      { "name": "Lumbering", "description": "Vehicle cannot maneuver over 4\" if you change its heading." },
+      { "name": "Nimble", "description": "The driver may cruise before or after maneuvering." },
+      { "name": "Open", "description": "Characters on this vehicle may engage and be engaged by an enemy in contact. Either may move away on their activation rather than remaining engaged." },
+      { "name": "Racer", "description": "You may add an additional +1d6\" to your cruise move." }
+    ]
+  },
+  "minions": {
+    "rules": "Requires the Dominion perk. Purchased with Backup points. All assets are temporary, one scenario only. Skills not listed are 1d6. d6* means knocked out on failed Health check instead of going down.",
+    "assets": [
+      { "name": "Level 1: Living Dead", "cost": 1, "health": "d6*", "skills": "Dodge no-dice", "abilities": "Reanimated" },
+      { "name": "Level 1: Mindless", "cost": 1, "health": "d6*", "skills": "Brawl 1d8, Might 1d8, Finesse no-dice, Cunning no-dice", "abilities": "" },
+      { "name": "Level 1: Swarm", "cost": 1, "health": "d6*", "skills": "", "abilities": "Swarm" },
+      { "name": "Level 1: Flyer", "cost": 1, "health": "d6*", "skills": "", "abilities": "Winged" },
+      { "name": "Level 2: Guardian", "cost": 2, "health": "d8", "skills": "Brawl 2d6, Dodge no-dice, Might 2d8, Finesse no-dice", "abilities": "" },
+      { "name": "Level 2: Cultist", "cost": 2, "health": "d6", "skills": "Shoot 3d6, Dodge 2d6", "abilities": "" },
+      { "name": "Level 2: Fanatic", "cost": 2, "health": "d6", "skills": "Brawl 3d6, Dodge 2d6", "abilities": "" },
+      { "name": "Level 2: Mob", "cost": 1, "health": "Gang", "skills": "Gang", "abilities": "Mob (see Gangs)" },
+      { "name": "Level 2: Fiends", "cost": 2, "health": "Gang", "skills": "Gang", "abilities": "Swarm (see Gangs)" },
+      { "name": "Level 3: Skin-Walker", "cost": 3, "health": "d8", "skills": "Brawl 2d6, Shoot 2d8, Dodge 3d8, Might 2d6, Finesse 3d6, Cunning 4d8", "abilities": "Shapeshifter: Spawn, Mutant, or Spectre" },
+      { "name": "Level 3: Spawn", "cost": 3, "health": "d8", "skills": "Brawl 4d8, Shoot no-dice, Dodge 3d8, Might 3d6, Finesse 3d8, Cunning 2d6", "abilities": "Indomitable" },
+      { "name": "Level 3: Mutant", "cost": 3, "health": "d10", "skills": "Brawl 3d8, Shoot 2d6, Dodge 3d6, Might 3d10, Finesse no-dice, Cunning 2d6", "abilities": "Savage" },
+      { "name": "Level 3: Spectre", "cost": 3, "health": "d8", "skills": "Brawl 2d6, Shoot 2d6, Dodge 4d8, Might 2d6, Finesse 3d8, Cunning 3d8", "abilities": "Shock" }
+    ]
+  },
+  "cultAssets": {
+    "rules": "Requires the Dominion perk. Purchased with Contacts points. All assets are temporary, one scenario only. Cannot take any Cult asset more than once per scenario.",
+    "assets": [
+      { "name": "Eyes and Ears", "cost": 1, "description": "You may draw one extra Fortune card on turn #1." },
+      { "name": "The Following", "cost": 1, "description": "During set-up, select one type of level 1 Minion for your Following. At the start of each turn, if you are the Director roll 1d6. On a 4+ deploy one of your Following." },
+      { "name": "Receive Dreams", "cost": 1, "description": "Shift your die-type up when rolling for starting Director." },
+      { "name": "The Brethren", "cost": 2, "description": "During set-up, select one type of level 2 Minion for your Brethren. At the start of each turn, if you are the Director roll 1d6. On a 4+ deploy one of your Brethren." },
+      { "name": "Dark Oath", "cost": 2, "description": "Draw one Fortune card each time you become Director." },
+      { "name": "Send Dreams", "cost": 2, "description": "Your Leader gains: Mindgame — Roll an opposed Finesse check against the enemy Director's Leader. If you win, you immediately become Director. May be used once per scenario." },
+      { "name": "Blood Oath", "cost": 3, "description": "During set-up, remove one Ally or Follower from your roster to gain an additional ability for your Leader: Savage, Regenerate, or Inhuman." },
+      { "name": "Hearts and Minds", "cost": 3, "description": "Instead of rolling a Recovery check for your Leader, remove a colleague from play within 6\" of your Leader. Your Leader automatically passes this Recovery check." },
+      { "name": "Unspeakable Oath", "cost": 4, "description": "During set-up, remove one Sidekick from your roster. Your Leader gains one Epic ability." }
+    ]
+  },
+  "gifts": {
+    "rules": "Requires the Dominion perk. Purchased with Gear points. All assets are temporary, one scenario only. Each Gift must be assigned to a specific character. A character cannot be assigned the same asset more than once.",
+    "assets": [
+      { "name": "Aura of Night", "cost": 1, "description": "(one-use) As an action, you cannot be rushed, targeted, or attacked for the remainder of this turn." },
+      { "name": "Glyph of Knowing", "cost": 1, "description": "(one-use) You automatically pass one challenge — instead of rolling." },
+      { "name": "Shadow Step", "cost": 1, "description": "Instead of moving normally, move anywhere within 12\", ignoring all intervening terrain and characters. May be used even if engaged." },
+      { "name": "Talisman", "cost": 2, "description": "You always count as in cover." },
+      { "name": "Ensorcelled Rune", "cost": 2, "description": "You gain one ability: Winged, Shadowy, or Aquatic." },
+      { "name": "Glyph of Defense", "cost": 2, "description": "Your Dodge is increased by +1d." },
+      { "name": "Doppelganger", "cost": 3, "description": "(Leader only) As a full action, target one Level 1 or 2 character within 12\" to place a Doppelganger within 3\" of your base. The Doppelganger's profile is identical to the target, under your control, but does not come into play ready." },
+      { "name": "Glyph of Power", "cost": 3, "description": "You gain one ability: Marksman or Fierce." },
+      { "name": "Scry", "cost": 3, "description": "You may pick a Random Event — instead of rolling." },
+      { "name": "Summoning Circle", "cost": 4, "description": "(Leader only) During set-up, select one type of level 1 Minion for your summoning. As a full action, if you are ready, deploy one of your summoned Minions within 3\" of your base." }
+    ]
+  },
+  "quickReference": {
+    "title": "Action Sequence Quick Reference",
+    "phases": [
+      { "name": "DIRECT", "description": "The Director selects a player to activate one character. The Director can select any player that has one or more ready characters — including themselves." },
+      { "name": "ACT", "steps": [
+        "1. Fortune Effects: Allow time for other players to play Fortune effects when you activate your character.",
+        "2. Automatic Effects: Resolve effects that occur automatically when you activate — such as perilous areas, horror, and so on.",
+        "3. Fight On: If you activate in contact with an enemy then you must immediately fight.",
+        "4. Move: You normally have the option to move up to 12\". If you move over 6\" then you cannot perform an action.",
+        "5. Attack or Action: If you move into contact with an enemy, you must fight. If not engaged, you may make a ranged attack or perform an action. Activation ends after action or fight.",
+        "6. End of Activation: Your character's activation ends."
+      ]},
+      { "name": "REPEAT", "description": "Repeat the Action Sequence (Direct & Act) until there are no ready characters in play." }
+    ],
+    "diceRules": "Each die that rolls a 4 or higher counts as one success. Bonus/Penalty: Temporarily increase or decrease the number of dice. Shift Up/Down: Roll next higher/lower dice-type. Re-Rolls apply to one die only, cannot re-roll the same die twice. No Dice: Character automatically fails any check involving a no-dice skill."
+  }
 }
