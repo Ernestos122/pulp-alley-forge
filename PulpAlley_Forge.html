@@ -2519,6 +2519,7 @@
         // 5k. PRINTABLE ROSTER
         // ==========================================
         const PrintableRoster = ({ league, gameData }) => {
+            const printOptions = window.__pulpAlleyPrintOptions || {};
             const totalSlots = getTotalSlots(league, gameData);
             const usedSlots = getUsedSlots(league, gameData);
             const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
@@ -2708,6 +2709,174 @@
                             })}
                         </div>
                     )}
+
+                    {/* === REFERENCE APPENDIX === */}
+
+                    {printOptions.weapons && (() => {
+                        const ranged = gameData.weapons?.ranged || [];
+                        const melee = gameData.weapons?.melee || [];
+                        return (
+                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
+                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Weapons Reference</div>
+                                <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
+                                    <div style={{fontWeight:'bold', marginBottom:'4px', color:'#333'}}>Ranged</div>
+                                    {ranged.map(w => (
+                                        <div key={w.name} style={{marginBottom:'3px', marginLeft:'8px'}}>
+                                            <span style={{fontWeight:'bold'}}>{w.name}</span> — {w.description}
+                                        </div>
+                                    ))}
+                                    <div style={{fontWeight:'bold', marginTop:'8px', marginBottom:'4px', color:'#333'}}>Melee</div>
+                                    {melee.map(w => (
+                                        <div key={w.name} style={{marginBottom:'3px', marginLeft:'8px'}}>
+                                            <span style={{fontWeight:'bold'}}>{w.name}</span> — {w.description}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    {printOptions.harrowingEscape && (() => {
+                        const he = gameData.harrowingEscape;
+                        if (!he) return null;
+                        const TableSection = ({ title, rows }) => (
+                            <div style={{marginBottom:'8px'}}>
+                                <div style={{fontWeight:'bold', marginBottom:'4px', color:'#333'}}>{title}</div>
+                                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
+                                    <thead>
+                                        <tr style={{borderBottom:'2px solid #000'}}>
+                                            <th style={{textAlign:'left', padding:'2px 6px', width:'40px'}}>Roll</th>
+                                            <th style={{textAlign:'left', padding:'2px 6px', width:'100px'}}>Result</th>
+                                            <th style={{textAlign:'left', padding:'2px 6px'}}>Effect</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rows.map(r => (
+                                            <tr key={r.roll} style={{borderBottom:'1px solid #ccc'}}>
+                                                <td style={{padding:'2px 6px'}}>{r.roll}</td>
+                                                <td style={{padding:'2px 6px', fontWeight:'bold'}}>{r.name}</td>
+                                                <td style={{padding:'2px 6px'}}>{r.description}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                        return (
+                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
+                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Harrowing Escape</div>
+                                <TableSection title="Full Recovery" rows={he.fullRecovery} />
+                                <TableSection title="Critical Injury" rows={he.criticalInjury} />
+                            </div>
+                        );
+                    })()}
+
+                    {printOptions.associateAbilities && (() => {
+                        const abilities = gameData.associateAbilities || [];
+                        if (abilities.length === 0) return null;
+                        return (
+                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
+                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Associate Abilities Reference</div>
+                                <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
+                                    {abilities.map(a => (
+                                        <div key={a.name} style={{marginBottom:'3px'}}>
+                                            <span style={{fontWeight:'bold'}}>{a.name}</span> — {a.description}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    {printOptions.reputationTable && (() => {
+                        const table = gameData.reputationTable || [];
+                        if (table.length === 0) return null;
+                        return (
+                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
+                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Reputation Table</div>
+                                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
+                                    <thead>
+                                        <tr style={{borderBottom:'2px solid #000'}}>
+                                            <th style={{textAlign:'left', padding:'2px 6px', width:'40px'}}>Rep</th>
+                                            <th style={{textAlign:'left', padding:'2px 6px', width:'120px'}}>Milestone</th>
+                                            <th style={{textAlign:'left', padding:'2px 6px'}}>Effect</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {table.map(r => (
+                                            <tr key={r.threshold} style={{borderBottom:'1px solid #ccc'}}>
+                                                <td style={{padding:'2px 6px'}}>{r.threshold}</td>
+                                                <td style={{padding:'2px 6px', fontWeight:'bold'}}>{r.name}</td>
+                                                <td style={{padding:'2px 6px'}}>{r.description}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                    })()}
+
+                    {printOptions.secretSociety && (() => {
+                        const societyName = league.campaignState?.secretSociety;
+                        if (!societyName) return null;
+                        const society = (gameData.secretSocieties || []).find(s => s.name === societyName);
+                        if (!society) return null;
+                        return (
+                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
+                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>{society.name}</div>
+                                <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
+                                    {society.ranks.map(rank => (
+                                        <div key={rank.rank} style={{marginBottom:'6px'}}>
+                                            <div style={{fontWeight:'bold', color:'#333', marginBottom:'2px'}}>Rank {rank.rank} (Rep {rank.reputationRequired}+)</div>
+                                            {(rank.perks || []).map(p => (
+                                                <div key={p.name} style={{marginLeft:'8px', marginBottom:'2px'}}>
+                                                    <span style={{fontWeight:'bold'}}>{p.name}</span> — {p.description}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    {printOptions.characterTemplates && (() => {
+                        const templates = gameData.characterTemplates || [];
+                        if (templates.length === 0) return null;
+                        return (
+                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
+                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Character Templates</div>
+                                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'9px', fontFamily:'Special Elite, monospace'}}>
+                                    <thead>
+                                        <tr style={{borderBottom:'2px solid #000'}}>
+                                            <th style={{textAlign:'left', padding:'2px 4px'}}>Type</th>
+                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Lvl</th>
+                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Health</th>
+                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Pools</th>
+                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Dice</th>
+                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Abilities</th>
+                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Max Lvl</th>
+                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Slots</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {templates.map(t => (
+                                            <tr key={t.type} style={{borderBottom:'1px solid #ccc'}}>
+                                                <td style={{padding:'2px 4px', fontWeight:'bold', textTransform:'capitalize'}}>{t.type}</td>
+                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.level}</td>
+                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.health}</td>
+                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.skillDicePools}</td>
+                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.skillDiceTypes}</td>
+                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.abilitySlots}</td>
+                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.maxAbilityLevel}</td>
+                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.rosterSlotCost}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                    })()}
                 </div>
             );
         };
