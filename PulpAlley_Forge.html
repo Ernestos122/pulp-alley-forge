@@ -1679,6 +1679,66 @@
                             )}
                         </div>
                     </div>
+
+                    {/* Print Reference Tables */}
+                    <div className="p-4 rounded mt-6" style={{background:'var(--paper-dark)', border:'1px solid var(--border)'}}>
+                        <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Print Reference Tables</div>
+                        <p className="typewriter text-xs mb-4" style={{color:'var(--ink-faded)'}}>Select which reference tables to include when printing your roster.</p>
+
+                        {[
+                            { group: 'Core Reference', items: [
+                                { key: 'quickReference', label: 'Quick Reference', description: 'Action sequence summary and dice rules' },
+                                { key: 'characterTemplates', label: 'Character Templates', description: 'Stat templates for all character types' },
+                                { key: 'weapons', label: 'Weapons Table', description: 'Ranged and melee weapons with descriptions' },
+                                { key: 'perks', label: 'Perks Reference', description: 'All 40 league perks with descriptions' },
+                                { key: 'genres', label: 'Genre Reference', description: 'Selected genre description and modifiers' },
+                            ]},
+                            { group: 'Campaign', items: [
+                                { key: 'harrowingEscape', label: 'Harrowing Escape', description: 'Full Recovery & Critical Injury tables' },
+                                { key: 'reputationTable', label: 'Reputation Table', description: '22 reputation milestones (10-175)' },
+                                { key: 'secretSociety', label: 'Secret Society Perks', description: 'Selected society ranks and perks' },
+                                { key: 'associateAbilities', label: 'Associate Abilities', description: 'All 15 associate abilities' },
+                            ]},
+                            { group: 'Resources & Assets', items: [
+                                { key: 'resourcesOverview', label: 'Resources Overview', description: 'Tips spending rules and Dominion overview' },
+                                { key: 'contactsAssets', label: 'Contacts Assets', description: 'Contacts spending table' },
+                                { key: 'gearAssets', label: 'Gear Assets', description: 'Gear spending table' },
+                                { key: 'gadgets', label: 'Gadgets', description: 'Experimental gadgets with Mishap rules' },
+                                { key: 'backupCharacters', label: 'Backup Characters', description: 'Hired help stat blocks' },
+                            ]},
+                            { group: 'Mounts & Vehicles', items: [
+                                { key: 'mounts', label: 'Mounts', description: 'Mount types and abilities' },
+                                { key: 'vehicles', label: 'Vehicles', description: 'Vehicle profiles and driving rules' },
+                            ]},
+                            { group: 'Dominion', items: [
+                                { key: 'minions', label: 'Minions', description: 'Dominion perk minion stat blocks' },
+                                { key: 'cultAssets', label: 'Cult Assets', description: 'Dominion perk cult assets' },
+                                { key: 'gifts', label: 'Gifts', description: 'Dominion perk gift assets' },
+                            ]},
+                        ].map(({ group, items }) => (
+                            <div key={group} className="mb-4">
+                                <div className="typewriter text-xs font-bold mb-2" style={{color:'var(--ink-light)'}}>{group}</div>
+                                <div className="space-y-1">
+                                    {items.map(({ key, label, description }) => {
+                                        const enabled = league.printSettings?.[key] || false;
+                                        return (
+                                            <div key={key} className="flex items-center justify-between p-2 rounded cursor-pointer hover:opacity-90"
+                                                style={{background: enabled ? 'var(--leather)' : 'var(--paper)', border: `1px solid ${enabled ? 'var(--crimson)' : 'var(--border)'}`}}
+                                                onClick={() => updateLeague(l => ({...l, printSettings: {...(l.printSettings || {}), [key]: !l.printSettings?.[key]}}))}>
+                                                <div className="flex-1 mr-2">
+                                                    <div className="brand-font text-sm font-bold" style={{color: enabled ? 'var(--paper)' : 'var(--ink)'}}>{label}</div>
+                                                    <div className="typewriter text-xs" style={{color: enabled ? 'var(--paper-dark)' : 'var(--ink-faded)'}}>{description}</div>
+                                                </div>
+                                                <div className="w-10 h-6 rounded-full relative flex-shrink-0" style={{background: enabled ? 'var(--crimson)' : 'var(--border)'}}>
+                                                    <div className="absolute top-0.5 w-5 h-5 rounded-full transition-all" style={{background:'white', left: enabled ? '18px' : '2px'}} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             );
         };
