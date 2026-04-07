@@ -62,6 +62,22 @@
         }
         .print-only { display: none; }
 
+        /* Mobile Layout */
+        @media (max-width: 768px) {
+            .desktop-sidebar { display: none !important; }
+            .desktop-only { display: none !important; }
+            .mobile-menu-btn { display: flex !important; }
+            .mobile-dropdown { display: none; }
+            .mobile-dropdown.open { display: block; }
+            select, button:not(.no-min-height), input { min-height: 44px; }
+            .mobile-back-btn { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+            .mobile-menu-btn { display: none !important; }
+            .mobile-dropdown { display: none !important; }
+            .mobile-back-btn { display: none !important; }
+        }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--leather); }
