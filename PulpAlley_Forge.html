@@ -196,6 +196,27 @@
                 secretSocietyPerks: [],
             },
             genre: null,
+            printSettings: {
+                weapons: false,
+                harrowingEscape: false,
+                associateAbilities: false,
+                reputationTable: false,
+                secretSociety: false,
+                characterTemplates: true,
+                genres: false,
+                perks: false,
+                resourcesOverview: false,
+                contactsAssets: false,
+                gearAssets: false,
+                gadgets: false,
+                backupCharacters: false,
+                mounts: false,
+                vehicles: false,
+                minions: false,
+                cultAssets: false,
+                gifts: false,
+                quickReference: true,
+            },
             optionalRules: { weapons: false, supers: false, deadAlive: false, heartless: false, roadWarriors: false, scavengeAndSurvive: false, singleShot: false },
         });
 
@@ -215,7 +236,11 @@
         };
 
         const loadLeague = (id) => {
-            try { return JSON.parse(localStorage.getItem(LEAGUE_PREFIX + id)); }
+            try {
+                const league = JSON.parse(localStorage.getItem(LEAGUE_PREFIX + id));
+                if (league && !league.printSettings) league.printSettings = EMPTY_LEAGUE().printSettings;
+                return league;
+            }
             catch { return null; }
         };
 
@@ -642,7 +667,7 @@
         // ==========================================
         // 5b. TOPBAR COMPONENT
         // ==========================================
-        const TopBar = ({ league, updateLeague, onBack, gameData, isMobile, onPrint }) => (
+        const TopBar = ({ league, updateLeague, onBack, gameData, isMobile }) => (
             <div className="no-print" style={{background:'var(--leather)', borderBottom:'3px solid var(--crimson)'}}>
                 <div className="p-2 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -688,7 +713,7 @@
                         <button onClick={() => exportLeagueJSON(league)} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Export JSON">
                             <Icons.Download size={16} />
                         </button>
-                        <button onClick={onPrint} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
+                        <button onClick={() => window.print()} className="cursor-pointer p-1 rounded hover:opacity-80" style={{color:'var(--paper)'}} title="Print">
                             <Icons.Printer size={16} />
                         </button>
                         </>)}
@@ -2519,7 +2544,6 @@
         // 5k. PRINTABLE ROSTER
         // ==========================================
         const PrintableRoster = ({ league, gameData }) => {
-            const printOptions = window.__pulpAlleyPrintOptions || {};
             const totalSlots = getTotalSlots(league, gameData);
             const usedSlots = getUsedSlots(league, gameData);
             const allAbPool = [...getAllAbilities(gameData), ...(gameData.abilities.epic || [])];
@@ -2710,173 +2734,6 @@
                         </div>
                     )}
 
-                    {/* === REFERENCE APPENDIX === */}
-
-                    {printOptions.weapons && (() => {
-                        const ranged = gameData.weapons?.ranged || [];
-                        const melee = gameData.weapons?.melee || [];
-                        return (
-                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
-                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Weapons Reference</div>
-                                <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
-                                    <div style={{fontWeight:'bold', marginBottom:'4px', color:'#333'}}>Ranged</div>
-                                    {ranged.map(w => (
-                                        <div key={w.name} style={{marginBottom:'3px', marginLeft:'8px'}}>
-                                            <span style={{fontWeight:'bold'}}>{w.name}</span> — {w.description}
-                                        </div>
-                                    ))}
-                                    <div style={{fontWeight:'bold', marginTop:'8px', marginBottom:'4px', color:'#333'}}>Melee</div>
-                                    {melee.map(w => (
-                                        <div key={w.name} style={{marginBottom:'3px', marginLeft:'8px'}}>
-                                            <span style={{fontWeight:'bold'}}>{w.name}</span> — {w.description}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })()}
-
-                    {printOptions.harrowingEscape && (() => {
-                        const he = gameData.harrowingEscape;
-                        if (!he) return null;
-                        const TableSection = ({ title, rows }) => (
-                            <div style={{marginBottom:'8px'}}>
-                                <div style={{fontWeight:'bold', marginBottom:'4px', color:'#333'}}>{title}</div>
-                                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
-                                    <thead>
-                                        <tr style={{borderBottom:'2px solid #000'}}>
-                                            <th style={{textAlign:'left', padding:'2px 6px', width:'40px'}}>Roll</th>
-                                            <th style={{textAlign:'left', padding:'2px 6px', width:'100px'}}>Result</th>
-                                            <th style={{textAlign:'left', padding:'2px 6px'}}>Effect</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {rows.map(r => (
-                                            <tr key={r.roll} style={{borderBottom:'1px solid #ccc'}}>
-                                                <td style={{padding:'2px 6px'}}>{r.roll}</td>
-                                                <td style={{padding:'2px 6px', fontWeight:'bold'}}>{r.name}</td>
-                                                <td style={{padding:'2px 6px'}}>{r.description}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        );
-                        return (
-                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
-                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Harrowing Escape</div>
-                                <TableSection title="Full Recovery" rows={he.fullRecovery} />
-                                <TableSection title="Critical Injury" rows={he.criticalInjury} />
-                            </div>
-                        );
-                    })()}
-
-                    {printOptions.associateAbilities && (() => {
-                        const abilities = gameData.associateAbilities || [];
-                        if (abilities.length === 0) return null;
-                        return (
-                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
-                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Associate Abilities Reference</div>
-                                <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
-                                    {abilities.map(a => (
-                                        <div key={a.name} style={{marginBottom:'3px'}}>
-                                            <span style={{fontWeight:'bold'}}>{a.name}</span> — {a.description}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })()}
-
-                    {printOptions.reputationTable && (() => {
-                        const table = gameData.reputationTable || [];
-                        if (table.length === 0) return null;
-                        return (
-                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
-                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Reputation Table</div>
-                                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
-                                    <thead>
-                                        <tr style={{borderBottom:'2px solid #000'}}>
-                                            <th style={{textAlign:'left', padding:'2px 6px', width:'40px'}}>Rep</th>
-                                            <th style={{textAlign:'left', padding:'2px 6px', width:'120px'}}>Milestone</th>
-                                            <th style={{textAlign:'left', padding:'2px 6px'}}>Effect</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {table.map(r => (
-                                            <tr key={r.threshold} style={{borderBottom:'1px solid #ccc'}}>
-                                                <td style={{padding:'2px 6px'}}>{r.threshold}</td>
-                                                <td style={{padding:'2px 6px', fontWeight:'bold'}}>{r.name}</td>
-                                                <td style={{padding:'2px 6px'}}>{r.description}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        );
-                    })()}
-
-                    {printOptions.secretSociety && (() => {
-                        const societyName = league.campaignState?.secretSociety;
-                        if (!societyName) return null;
-                        const society = (gameData.secretSocieties || []).find(s => s.name === societyName);
-                        if (!society) return null;
-                        return (
-                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
-                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>{society.name}</div>
-                                <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace'}}>
-                                    {society.ranks.map(rank => (
-                                        <div key={rank.rank} style={{marginBottom:'6px'}}>
-                                            <div style={{fontWeight:'bold', color:'#333', marginBottom:'2px'}}>Rank {rank.rank} (Rep {rank.reputationRequired}+)</div>
-                                            {(rank.perks || []).map(p => (
-                                                <div key={p.name} style={{marginLeft:'8px', marginBottom:'2px'}}>
-                                                    <span style={{fontWeight:'bold'}}>{p.name}</span> — {p.description}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })()}
-
-                    {printOptions.characterTemplates && (() => {
-                        const templates = gameData.characterTemplates || [];
-                        if (templates.length === 0) return null;
-                        return (
-                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
-                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>Character Templates</div>
-                                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'9px', fontFamily:'Special Elite, monospace'}}>
-                                    <thead>
-                                        <tr style={{borderBottom:'2px solid #000'}}>
-                                            <th style={{textAlign:'left', padding:'2px 4px'}}>Type</th>
-                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Lvl</th>
-                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Health</th>
-                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Pools</th>
-                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Dice</th>
-                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Abilities</th>
-                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Max Lvl</th>
-                                            <th style={{textAlign:'center', padding:'2px 4px'}}>Slots</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {templates.map(t => (
-                                            <tr key={t.type} style={{borderBottom:'1px solid #ccc'}}>
-                                                <td style={{padding:'2px 4px', fontWeight:'bold', textTransform:'capitalize'}}>{t.type}</td>
-                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.level}</td>
-                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.health}</td>
-                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.skillDicePools}</td>
-                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.skillDiceTypes}</td>
-                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.abilitySlots}</td>
-                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.maxAbilityLevel}</td>
-                                                <td style={{padding:'2px 4px', textAlign:'center'}}>{t.rosterSlotCost}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        );
-                    })()}
                 </div>
             );
         };
@@ -3024,7 +2881,7 @@
         // ==========================================
         // 5m3. MORE PANEL (mobile genre/settings/export)
         // ==========================================
-        const MorePanel = ({ league, gameData, updateLeague, onNavigate, onPrint }) => {
+        const MorePanel = ({ league, gameData, updateLeague, onNavigate }) => {
             const rules = league.optionalRules || {};
             return (
                 <div className="flex-1 overflow-y-auto p-4" style={{background:'var(--paper)'}}>
@@ -3100,93 +2957,11 @@
                             style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
                             <Icons.Download size={14} /> Export
                         </button>
-                        <button onClick={onPrint}
+                        <button onClick={() => window.print()}
                             className="flex-1 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80 flex items-center justify-center gap-1"
                             style={{background:'var(--leather)', color:'var(--paper)', border:'none'}}>
                             <Icons.Printer size={14} /> Print
                         </button>
-                    </div>
-                </div>
-            );
-        };
-
-        // ==========================================
-        // 5n. PRINT SETTINGS MODAL
-        // ==========================================
-        const PrintModal = ({ league, gameData, onClose }) => {
-            const cs = league.campaignState || {};
-            const hasCampaign = cs.reputation > 0 || cs.xp > 0;
-            const [options, setOptions] = useState({
-                weapons: !!league.optionalRules?.weapons,
-                harrowingEscape: hasCampaign,
-                associateAbilities: league.associates.length > 0,
-                reputationTable: hasCampaign,
-                secretSociety: !!cs.secretSociety,
-                characterTemplates: false,
-            });
-
-            const toggle = (key) => setOptions(prev => ({ ...prev, [key]: !prev[key] }));
-
-            const handlePrint = () => {
-                window.__pulpAlleyPrintOptions = options;
-                setTimeout(() => {
-                    window.print();
-                    delete window.__pulpAlleyPrintOptions;
-                }, 100);
-            };
-
-            const toggles = [
-                { key: 'weapons', label: 'Weapons Table', desc: '6 ranged + 6 melee weapons with descriptions' },
-                { key: 'harrowingEscape', label: 'Harrowing Escape', desc: 'Full Recovery & Critical Injury roll tables' },
-                { key: 'associateAbilities', label: 'Associate Abilities', desc: 'All 15 associate abilities reference' },
-                { key: 'reputationTable', label: 'Reputation Table', desc: '22 reputation milestones (10–175)' },
-                { key: 'secretSociety', label: 'Secret Society Perks', desc: cs.secretSociety ? `${cs.secretSociety} — all ranks` : 'Requires a society selected in Campaign' },
-                { key: 'characterTemplates', label: 'Character Templates', desc: 'Stat templates for all character types' },
-            ];
-
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.6)'}} onClick={onClose}>
-                    <div className="p-6 rounded-lg max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto" style={{background:'var(--paper)', border:'2px solid var(--border)'}} onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>Print Roster</h2>
-                            <button onClick={onClose} className="cursor-pointer hover:opacity-70" style={{color:'var(--ink-faded)', background:'transparent', border:'none'}}>
-                                <Icons.X size={18} />
-                            </button>
-                        </div>
-                        <div className="typewriter text-xs mb-4" style={{color:'var(--ink-faded)'}}>{league.name}</div>
-
-                        <div className="mb-4">
-                            <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Include Reference Tables</div>
-                            <div className="space-y-2">
-                                {toggles.map(({ key, label, desc }) => (
-                                    <div key={key} className="flex items-center gap-3 p-2 rounded cursor-pointer hover:opacity-90"
-                                        style={{background: options[key] ? 'var(--leather)' : 'var(--paper-dark)', border: `1px solid ${options[key] ? 'var(--crimson)' : 'var(--border)'}`}}
-                                        onClick={() => toggle(key)}>
-                                        <div className="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0"
-                                            style={{borderColor: options[key] ? 'var(--crimson)' : 'var(--border)', background: options[key] ? 'var(--crimson)' : 'transparent'}}>
-                                            {options[key] && <span style={{color:'white', fontSize:'12px', fontWeight:'bold'}}>✓</span>}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="brand-font text-sm font-bold" style={{color: options[key] ? 'var(--paper)' : 'var(--ink)'}}>{label}</div>
-                                            <div className="typewriter text-xs" style={{color: options[key] ? 'var(--paper-dark)' : 'var(--ink-faded)'}}>{desc}</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button onClick={handlePrint}
-                                className="flex-1 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80 flex items-center justify-center gap-1"
-                                style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
-                                <Icons.Printer size={14} /> Print
-                            </button>
-                            <button onClick={onClose}
-                                className="px-4 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80"
-                                style={{background:'var(--paper-dark)', color:'var(--ink)', border:'1px solid var(--border)'}}>
-                                Cancel
-                            </button>
-                        </div>
                     </div>
                 </div>
             );
@@ -3261,7 +3036,6 @@
             const [toast, setToast] = useState(null);
             const isMobile = useIsMobile();
             const [mobileTab, setMobileTab] = useState('roster');
-            const [showPrintModal, setShowPrintModal] = useState(false);
 
             const showToast = (msg, type='info') => { setToast({msg, type}); setTimeout(() => setToast(null), 3000); };
 
@@ -3406,13 +3180,13 @@
                 }
                 if (mobileTab === 'perks') return <PerkBrowser league={league} gameData={gameData} updateLeague={updateLeague} />;
                 if (mobileTab === 'campaign') return <CampaignPanel league={league} gameData={gameData} updateLeague={updateLeague} updateCharacter={updateCharacter} />;
-                if (mobileTab === 'more') return <MorePanel league={league} gameData={gameData} updateLeague={updateLeague} onNavigate={handleMoreNavigate} onPrint={() => setShowPrintModal(true)} />;
+                if (mobileTab === 'more') return <MorePanel league={league} gameData={gameData} updateLeague={updateLeague} onNavigate={handleMoreNavigate} />;
                 return null;
             };
 
             return (
                 <div className="h-full flex flex-col" style={{background:'var(--paper)'}}>
-                    <TopBar league={league} updateLeague={updateLeague} gameData={gameData} isMobile={isMobile} onPrint={() => setShowPrintModal(true)} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); }} />
+                    <TopBar league={league} updateLeague={updateLeague} gameData={gameData} isMobile={isMobile} onBack={() => { setShowLeagueSelector(true); setSelectedCharId(null); setActiveView(null); }} />
 
                     {isMobile ? (
                         <div className="flex-1 overflow-y-auto no-print">
@@ -3443,14 +3217,6 @@
                             league={league} gameData={gameData}
                             onAdd={addCharacter}
                             onClose={() => setShowAddModal(false)}
-                        />
-                    )}
-
-                    {showPrintModal && (
-                        <PrintModal
-                            league={league}
-                            gameData={gameData}
-                            onClose={() => setShowPrintModal(false)}
                         />
                     )}
 
