@@ -2942,6 +2942,88 @@
         };
 
         // ==========================================
+        // 5n. PRINT SETTINGS MODAL
+        // ==========================================
+        const PrintModal = ({ league, gameData, onClose }) => {
+            const cs = league.campaignState || {};
+            const hasCampaign = cs.reputation > 0 || cs.xp > 0;
+            const [options, setOptions] = useState({
+                weapons: !!league.optionalRules?.weapons,
+                harrowingEscape: hasCampaign,
+                associateAbilities: league.associates.length > 0,
+                reputationTable: hasCampaign,
+                secretSociety: !!cs.secretSociety,
+                characterTemplates: false,
+            });
+
+            const toggle = (key) => setOptions(prev => ({ ...prev, [key]: !prev[key] }));
+
+            const handlePrint = () => {
+                window.__pulpAlleyPrintOptions = options;
+                setTimeout(() => {
+                    window.print();
+                    delete window.__pulpAlleyPrintOptions;
+                }, 100);
+            };
+
+            const toggles = [
+                { key: 'weapons', label: 'Weapons Table', desc: '6 ranged + 6 melee weapons with descriptions' },
+                { key: 'harrowingEscape', label: 'Harrowing Escape', desc: 'Full Recovery & Critical Injury roll tables' },
+                { key: 'associateAbilities', label: 'Associate Abilities', desc: 'All 15 associate abilities reference' },
+                { key: 'reputationTable', label: 'Reputation Table', desc: '22 reputation milestones (10–175)' },
+                { key: 'secretSociety', label: 'Secret Society Perks', desc: cs.secretSociety ? `${cs.secretSociety} — all ranks` : 'Requires a society selected in Campaign' },
+                { key: 'characterTemplates', label: 'Character Templates', desc: 'Stat templates for all character types' },
+            ];
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.6)'}} onClick={onClose}>
+                    <div className="p-6 rounded-lg max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto" style={{background:'var(--paper)', border:'2px solid var(--border)'}} onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-2">
+                            <h2 className="brand-font text-lg font-bold" style={{color:'var(--ink)'}}>Print Roster</h2>
+                            <button onClick={onClose} className="cursor-pointer hover:opacity-70" style={{color:'var(--ink-faded)', background:'transparent', border:'none'}}>
+                                <Icons.X size={18} />
+                            </button>
+                        </div>
+                        <div className="typewriter text-xs mb-4" style={{color:'var(--ink-faded)'}}>{league.name}</div>
+
+                        <div className="mb-4">
+                            <div className="typewriter text-xs uppercase tracking-wider mb-3" style={{color:'var(--crimson)'}}>Include Reference Tables</div>
+                            <div className="space-y-2">
+                                {toggles.map(({ key, label, desc }) => (
+                                    <div key={key} className="flex items-center gap-3 p-2 rounded cursor-pointer hover:opacity-90"
+                                        style={{background: options[key] ? 'var(--leather)' : 'var(--paper-dark)', border: `1px solid ${options[key] ? 'var(--crimson)' : 'var(--border)'}`}}
+                                        onClick={() => toggle(key)}>
+                                        <div className="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0"
+                                            style={{borderColor: options[key] ? 'var(--crimson)' : 'var(--border)', background: options[key] ? 'var(--crimson)' : 'transparent'}}>
+                                            {options[key] && <span style={{color:'white', fontSize:'12px', fontWeight:'bold'}}>✓</span>}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="brand-font text-sm font-bold" style={{color: options[key] ? 'var(--paper)' : 'var(--ink)'}}>{label}</div>
+                                            <div className="typewriter text-xs" style={{color: options[key] ? 'var(--paper-dark)' : 'var(--ink-faded)'}}>{desc}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button onClick={handlePrint}
+                                className="flex-1 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80 flex items-center justify-center gap-1"
+                                style={{background:'var(--crimson)', color:'var(--paper)', border:'none'}}>
+                                <Icons.Printer size={14} /> Print
+                            </button>
+                            <button onClick={onClose}
+                                className="px-4 py-2 rounded typewriter text-sm cursor-pointer hover:opacity-80"
+                                style={{background:'var(--paper-dark)', color:'var(--ink)', border:'1px solid var(--border)'}}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
         // 6. LEAGUE SELECTOR COMPONENT
         // ==========================================
         const LeagueSelector = ({ gameData, onSelect, onCreate }) => {
