@@ -2836,7 +2836,309 @@
                         </div>
                     )}
 
-                    {/* === REFERENCE APPENDIX (added in Task 5) === */}
+                    {/* === REFERENCE APPENDIX === */}
+                    {(() => {
+                        const refCard = (title, children) => (
+                            <div style={{breakInside:'avoid', pageBreakInside:'avoid', border:'2px solid #000', borderRadius:'4px', padding:'12px', marginTop:'16px', background:'#fff'}}>
+                                <div style={{fontFamily:'Playfair Display, Georgia, serif', fontSize:'14px', fontWeight:'bold', borderBottom:'2px solid #000', marginBottom:'8px', paddingBottom:'4px'}}>{title}</div>
+                                <div style={{fontSize:'10px', fontFamily:'Special Elite, monospace'}}>{children}</div>
+                            </div>
+                        );
+                        const tblSt = {width:'100%', borderCollapse:'collapse', fontSize:'10px', fontFamily:'Special Elite, monospace'};
+                        const thSt = {textAlign:'left', padding:'3px 6px', borderBottom:'2px solid #000', fontWeight:'bold', background:'#f0f0f0'};
+                        const tdSt = {padding:'3px 6px', borderBottom:'1px solid #ccc', verticalAlign:'top'};
+                        return (
+                            <React.Fragment>
+
+                            {/* 1. Quick Reference */}
+                            {printSettings.quickReference && gameData.quickReference && refCard(gameData.quickReference.title, (
+                                <div>
+                                    {gameData.quickReference.phases.map(phase => (
+                                        <div key={phase.name} style={{marginBottom:'6px'}}>
+                                            <div style={{fontWeight:'bold', marginBottom:'2px'}}>{phase.name}</div>
+                                            {phase.description && <div>{phase.description}</div>}
+                                            {phase.steps && <div>{phase.steps.map((s, i) => <div key={i} style={{marginLeft:'8px'}}>{s}</div>)}</div>}
+                                        </div>
+                                    ))}
+                                    <div style={{marginTop:'6px', borderTop:'1px solid #ccc', paddingTop:'4px'}}>{gameData.quickReference.diceRules}</div>
+                                </div>
+                            ))}
+
+                            {/* 2. Character Templates */}
+                            {printSettings.characterTemplates && gameData.characterTemplates && refCard('Character Templates', (
+                                <table style={tblSt}>
+                                    <thead><tr>
+                                        <th style={thSt}>Type</th><th style={thSt}>Lvl</th><th style={thSt}>Health</th>
+                                        <th style={thSt}>Pools</th><th style={thSt}>Dice</th><th style={thSt}>Abilities</th>
+                                        <th style={thSt}>Max Lvl</th><th style={thSt}>Slots</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        {gameData.characterTemplates.map(t => (
+                                            <tr key={t.type}>
+                                                <td style={tdSt}>{t.type.charAt(0).toUpperCase() + t.type.slice(1)}</td>
+                                                <td style={tdSt}>{t.level}</td>
+                                                <td style={tdSt}>{t.health}</td>
+                                                <td style={tdSt}>{t.skillDicePools ? `${t.skillDicePools.highCount}x${t.skillDicePools.high}d / ${t.skillDicePools.lowCount}x${t.skillDicePools.low}d` : 'Special'}</td>
+                                                <td style={tdSt}>{t.skillDiceTypes ? `${t.skillDiceTypes.highCount}x${t.skillDiceTypes.high} / ${t.skillDiceTypes.lowCount}x${t.skillDiceTypes.low}` : 'Special'}</td>
+                                                <td style={tdSt}>{t.abilitySlots}</td>
+                                                <td style={tdSt}>{t.maxAbilityLevel}</td>
+                                                <td style={tdSt}>{t.rosterSlotCost}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ))}
+
+                            {/* 3. Weapons */}
+                            {printSettings.weapons && gameData.weapons && refCard('Weapons', (
+                                <div>
+                                    <div style={{fontWeight:'bold', marginBottom:'4px', borderBottom:'1px solid #ccc', paddingBottom:'2px'}}>Ranged</div>
+                                    {(gameData.weapons.ranged || []).map(w => (
+                                        <div key={w.name} style={{marginBottom:'3px'}}><span style={{fontWeight:'bold'}}>{w.name}</span> — {w.description}</div>
+                                    ))}
+                                    <div style={{fontWeight:'bold', marginTop:'8px', marginBottom:'4px', borderBottom:'1px solid #ccc', paddingBottom:'2px'}}>Melee</div>
+                                    {(gameData.weapons.melee || []).map(w => (
+                                        <div key={w.name} style={{marginBottom:'3px'}}><span style={{fontWeight:'bold'}}>{w.name}</span> — {w.description}</div>
+                                    ))}
+                                </div>
+                            ))}
+
+                            {/* 4. Perks */}
+                            {printSettings.perks && gameData.perks && refCard('Perks', (
+                                <div style={{columnCount:2, columnGap:'12px'}}>
+                                    {gameData.perks.map(p => (
+                                        <div key={p.name} style={{breakInside:'avoid', marginBottom:'3px'}}>
+                                            <span style={{fontWeight:'bold'}}>{p.name}</span>
+                                            <span style={{color:'#666'}}> ({p.slotCost} slot{p.slotCost !== 1 ? 's' : ''}, {p.category})</span>
+                                            {' — '}{p.description}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+
+                            {/* 5. Genres */}
+                            {printSettings.genres && gameData.genres && (() => {
+                                const genresToShow = league.genre
+                                    ? gameData.genres.filter(g => g.name === league.genre)
+                                    : gameData.genres;
+                                return refCard('Genres', (
+                                    <div>
+                                        {genresToShow.map(g => (
+                                            <div key={g.name} style={{marginBottom:'8px'}}>
+                                                <div style={{fontWeight:'bold', marginBottom:'2px'}}>{g.name}</div>
+                                                <div style={{marginBottom:'4px'}}>{g.description}</div>
+                                                {g.modifiers.map(mod => (
+                                                    <div key={mod.name} style={{marginLeft:'10px', marginBottom:'2px'}}>
+                                                        <span style={{fontWeight:'bold'}}>{mod.name}</span> — {mod.description}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ));
+                            })()}
+
+                            {/* 6. Harrowing Escape */}
+                            {printSettings.harrowingEscape && gameData.harrowingEscape && refCard('Harrowing Escape', (
+                                <div>
+                                    <div style={{fontWeight:'bold', marginBottom:'4px'}}>Full Recovery</div>
+                                    <table style={{...tblSt, marginBottom:'10px'}}>
+                                        <thead><tr><th style={thSt}>Roll</th><th style={thSt}>Result</th><th style={thSt}>Effect</th></tr></thead>
+                                        <tbody>{gameData.harrowingEscape.fullRecovery.map(r => (
+                                            <tr key={r.roll}><td style={tdSt}>{r.roll}</td><td style={tdSt}>{r.result}</td><td style={tdSt}>{r.effect}</td></tr>
+                                        ))}</tbody>
+                                    </table>
+                                    <div style={{fontWeight:'bold', marginBottom:'4px'}}>Critical Injury</div>
+                                    <table style={tblSt}>
+                                        <thead><tr><th style={thSt}>Roll</th><th style={thSt}>Result</th><th style={thSt}>Effect</th></tr></thead>
+                                        <tbody>{gameData.harrowingEscape.criticalInjury.map(r => (
+                                            <tr key={r.roll}><td style={tdSt}>{r.roll}</td><td style={tdSt}>{r.result}</td><td style={tdSt}>{r.effect}</td></tr>
+                                        ))}</tbody>
+                                    </table>
+                                </div>
+                            ))}
+
+                            {/* 7. Reputation Table */}
+                            {printSettings.reputationTable && gameData.reputationTable && refCard('Reputation Milestones', (
+                                <table style={tblSt}>
+                                    <thead><tr><th style={thSt}>Rep</th><th style={thSt}>Milestone</th><th style={thSt}>Effect</th></tr></thead>
+                                    <tbody>{gameData.reputationTable.map(r => (
+                                        <tr key={r.threshold}><td style={tdSt}>{r.threshold}</td><td style={tdSt}>{r.name}</td><td style={tdSt}>{r.description}</td></tr>
+                                    ))}</tbody>
+                                </table>
+                            ))}
+
+                            {/* 8. Secret Society */}
+                            {printSettings.secretSociety && (() => {
+                                const societyName = league.campaignState?.secretSociety;
+                                if (!societyName || !gameData.secretSocieties) return null;
+                                const society = gameData.secretSocieties.find(s => s.name === societyName);
+                                if (!society) return null;
+                                return refCard(`Secret Society: ${society.name}`, (
+                                    <div>
+                                        {society.ranks.map(rank => (
+                                            <div key={rank.rank} style={{marginBottom:'8px'}}>
+                                                <div style={{fontWeight:'bold', marginBottom:'2px'}}>Rank {rank.rank} (Rep {rank.reputationRequired}+)</div>
+                                                {rank.perks.map(p => (
+                                                    <div key={p.name} style={{marginLeft:'10px', marginBottom:'2px'}}>
+                                                        <span style={{fontWeight:'bold'}}>{p.name}</span> — {p.description}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ));
+                            })()}
+
+                            {/* 9. Associate Abilities */}
+                            {printSettings.associateAbilities && gameData.associateAbilities && refCard('Associate Abilities', (
+                                <div>
+                                    {gameData.associateAbilities.map(a => (
+                                        <div key={a.name} style={{marginBottom:'3px'}}>
+                                            <span style={{fontWeight:'bold'}}>{a.name}</span> — {a.description}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+
+                            {/* 10. Resources Overview */}
+                            {printSettings.resourcesOverview && gameData.resourcesOverview && refCard('Resources Overview', (
+                                <div>
+                                    <div style={{marginBottom:'6px'}}>{gameData.resourcesOverview.description}</div>
+                                    <div style={{fontWeight:'bold', marginBottom:'4px', borderBottom:'1px solid #ccc', paddingBottom:'2px'}}>Tips</div>
+                                    {gameData.resourcesOverview.tips.map(t => (
+                                        <div key={t.name} style={{marginBottom:'3px', marginLeft:'8px'}}>
+                                            <span style={{fontWeight:'bold'}}>{t.name}</span> — {t.description}
+                                        </div>
+                                    ))}
+                                    <div style={{fontWeight:'bold', marginTop:'6px', marginBottom:'4px', borderBottom:'1px solid #ccc', paddingBottom:'2px'}}>Dominion</div>
+                                    <div style={{marginLeft:'8px'}}>{gameData.resourcesOverview.dominion}</div>
+                                </div>
+                            ))}
+
+                            {/* 11. Contacts Assets */}
+                            {printSettings.contactsAssets && gameData.contactsAssets && refCard('Contacts Assets', (
+                                <table style={tblSt}>
+                                    <thead><tr><th style={thSt}>Name</th><th style={thSt}>Cost</th><th style={thSt}>Description</th></tr></thead>
+                                    <tbody>{gameData.contactsAssets.map(a => (
+                                        <tr key={a.name}><td style={tdSt}>{a.name}</td><td style={tdSt}>{a.cost}</td><td style={tdSt}>{a.description}</td></tr>
+                                    ))}</tbody>
+                                </table>
+                            ))}
+
+                            {/* 12. Gear Assets */}
+                            {printSettings.gearAssets && gameData.gearAssets && refCard('Gear Assets', (
+                                <table style={tblSt}>
+                                    <thead><tr><th style={thSt}>Name</th><th style={thSt}>Cost</th><th style={thSt}>Description</th></tr></thead>
+                                    <tbody>{gameData.gearAssets.map(a => (
+                                        <tr key={a.name}><td style={tdSt}>{a.name}</td><td style={tdSt}>{a.cost}</td><td style={tdSt}>{a.description}</td></tr>
+                                    ))}</tbody>
+                                </table>
+                            ))}
+
+                            {/* 13. Gadgets */}
+                            {printSettings.gadgets && gameData.gadgets && refCard('Gadgets', (
+                                <div>
+                                    <div style={{marginBottom:'6px', fontStyle:'italic'}}>{gameData.gadgets.rules}</div>
+                                    <table style={tblSt}>
+                                        <thead><tr><th style={thSt}>Name</th><th style={thSt}>Cost</th><th style={thSt}>Description</th></tr></thead>
+                                        <tbody>{gameData.gadgets.assets.map(a => (
+                                            <tr key={a.name}><td style={tdSt}>{a.name}</td><td style={tdSt}>{a.cost}</td><td style={tdSt}>{a.description}</td></tr>
+                                        ))}</tbody>
+                                    </table>
+                                </div>
+                            ))}
+
+                            {/* 14. Backup Characters */}
+                            {printSettings.backupCharacters && gameData.backupCharacters && refCard('Backup Characters', (
+                                <div>
+                                    <div style={{marginBottom:'6px', fontStyle:'italic'}}>{gameData.backupCharacters.rules}</div>
+                                    <table style={tblSt}>
+                                        <thead><tr><th style={thSt}>Name</th><th style={thSt}>Cost</th><th style={thSt}>Skills</th><th style={thSt}>Health</th></tr></thead>
+                                        <tbody>{gameData.backupCharacters.assets.map(a => (
+                                            <tr key={a.name}><td style={tdSt}>{a.name}</td><td style={tdSt}>{a.cost}</td><td style={tdSt}>{a.skills}</td><td style={tdSt}>{a.health}</td></tr>
+                                        ))}</tbody>
+                                    </table>
+                                </div>
+                            ))}
+
+                            {/* 15. Mounts */}
+                            {printSettings.mounts && gameData.mounts && refCard('Mounts', (
+                                <div>
+                                    <div style={{marginBottom:'6px', fontStyle:'italic'}}>{gameData.mounts.rules}</div>
+                                    {gameData.mounts.abilities.map(a => (
+                                        <div key={a.name} style={{marginBottom:'3px'}}>
+                                            <span style={{fontWeight:'bold'}}>{a.name}</span> ({a.cost} pt{a.cost !== 1 ? 's' : ''}) — {a.description}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+
+                            {/* 16. Vehicles */}
+                            {printSettings.vehicles && gameData.vehicles && refCard('Vehicles', (
+                                <div>
+                                    <div style={{marginBottom:'6px', fontStyle:'italic'}}>{gameData.vehicles.rules}</div>
+                                    <table style={{...tblSt, marginBottom:'8px'}}>
+                                        <thead><tr>
+                                            <th style={thSt}>Name</th><th style={thSt}>Size</th><th style={thSt}>Pass.</th>
+                                            <th style={thSt}>Reliability</th><th style={thSt}>Special</th><th style={thSt}>Cost</th>
+                                        </tr></thead>
+                                        <tbody>{gameData.vehicles.basic.map(v => (
+                                            <tr key={v.name}>
+                                                <td style={tdSt}>{v.name}</td><td style={tdSt}>{v.size}</td><td style={tdSt}>{v.passengers}</td>
+                                                <td style={tdSt}>{v.reliability}</td><td style={tdSt}>{v.special}</td><td style={tdSt}>{v.cost}</td>
+                                            </tr>
+                                        ))}</tbody>
+                                    </table>
+                                    <div style={{fontWeight:'bold', marginBottom:'4px'}}>Special Rules</div>
+                                    {gameData.vehicles.specials.map(s => (
+                                        <div key={s.name} style={{marginBottom:'3px'}}>
+                                            <span style={{fontWeight:'bold'}}>{s.name}</span> — {s.description}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+
+                            {/* 17. Minions */}
+                            {printSettings.minions && gameData.minions && refCard('Minions', (
+                                <div>
+                                    <div style={{marginBottom:'6px', fontStyle:'italic'}}>{gameData.minions.rules}</div>
+                                    <table style={tblSt}>
+                                        <thead><tr><th style={thSt}>Name</th><th style={thSt}>Cost</th><th style={thSt}>Health</th><th style={thSt}>Skills</th><th style={thSt}>Abilities</th></tr></thead>
+                                        <tbody>{gameData.minions.assets.map(a => (
+                                            <tr key={a.name}><td style={tdSt}>{a.name}</td><td style={tdSt}>{a.cost}</td><td style={tdSt}>{a.health}</td><td style={tdSt}>{a.skills}</td><td style={tdSt}>{a.abilities}</td></tr>
+                                        ))}</tbody>
+                                    </table>
+                                </div>
+                            ))}
+
+                            {/* 18. Cult Assets */}
+                            {printSettings.cultAssets && gameData.cultAssets && refCard('Cult Assets', (
+                                <div>
+                                    <div style={{marginBottom:'6px', fontStyle:'italic'}}>{gameData.cultAssets.rules}</div>
+                                    {gameData.cultAssets.assets.map(a => (
+                                        <div key={a.name} style={{marginBottom:'3px'}}>
+                                            <span style={{fontWeight:'bold'}}>{a.name}</span> ({a.cost}) — {a.description}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+
+                            {/* 19. Gifts */}
+                            {printSettings.gifts && gameData.gifts && refCard('Gifts', (
+                                <div>
+                                    <div style={{marginBottom:'6px', fontStyle:'italic'}}>{gameData.gifts.rules}</div>
+                                    {gameData.gifts.assets.map(a => (
+                                        <div key={a.name} style={{marginBottom:'3px'}}>
+                                            <span style={{fontWeight:'bold'}}>{a.name}</span> ({a.cost}) — {a.description}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+
+                            </React.Fragment>
+                        );
+                    })()}
                 </div>
             );
         };

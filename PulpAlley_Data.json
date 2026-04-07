@@ -1616,6 +1616,28 @@
       { "name": "Summoning Circle", "cost": 4, "description": "(Leader only) During set-up, select one type of level 1 Minion for your summoning. As a full action, if you are ready, deploy one of your summoned Minions within 3\" of your base." }
     ]
   },
+  "harrowingEscape": {
+    "fullRecovery": [
+      { "roll": "1-3", "result": "Full Recovery", "effect": "No lasting effect. The character recovers completely." },
+      { "roll": "4", "result": "Shaken", "effect": "The character is shaken. All skills are impaired for the first turn of the next scenario." },
+      { "roll": "5", "result": "Banged Up", "effect": "The character starts the next scenario with their Health shifted down one dice-type." },
+      { "roll": "6", "result": "Hobbled", "effect": "The character cannot move over 6\" (except to rush) during the next scenario." },
+      { "roll": "7", "result": "Weakened", "effect": "One combat skill (your choice) is impaired during the next scenario." },
+      { "roll": "8", "result": "Dazed", "effect": "One action skill (your choice) is impaired during the next scenario." },
+      { "roll": "9", "result": "Scarred", "effect": "The character gains the Shadowy ability for the next scenario (if they don't already have it)." },
+      { "roll": "10", "result": "Miraculous Escape", "effect": "No lasting effect and the character draws one Fortune card at the start of the next scenario." }
+    ],
+    "criticalInjury": [
+      { "roll": "1-3", "result": "Close Call", "effect": "No lasting effect. The character recovers but is rattled." },
+      { "roll": "4", "result": "Broken", "effect": "One combat skill (your choice) is permanently reduced one dice-type (minimum d6)." },
+      { "roll": "5", "result": "Concussed", "effect": "One action skill (your choice) is permanently reduced one dice-type (minimum d6)." },
+      { "roll": "6", "result": "Lame", "effect": "The character's maximum move is permanently reduced to 6\" (except rush)." },
+      { "roll": "7", "result": "Frail", "effect": "The character's Health is permanently shifted down one dice-type (minimum d6)." },
+      { "roll": "8", "result": "Nerve Damage", "effect": "The character permanently loses one ability slot. If no slots remain, they lose one ability of the player's choice." },
+      { "roll": "9", "result": "Bitter Resolve", "effect": "No lasting injury. The character gains +1 XP." },
+      { "roll": "10", "result": "Dead", "effect": "The character is removed from the roster permanently." }
+    ]
+  },
   "quickReference": {
     "title": "Action Sequence Quick Reference",
     "phases": [
