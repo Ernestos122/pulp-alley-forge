@@ -603,6 +603,243 @@
             return html;
         };
 
+        // ── buildAllReferenceTables ──
+        const buildAllReferenceTables = (league, gameData, ps, refCard, esc) => {
+            let html = '';
+
+            // 1. Quick Reference
+            if (ps.quickReference && gameData.quickReference) {
+                let c = '';
+                (gameData.quickReference.phases || []).forEach(phase => {
+                    c += `<div style="margin-bottom:6px"><div style="font-weight:bold;margin-bottom:2px">${esc(phase.name)}</div>`;
+                    if (phase.description) c += `<div>${esc(phase.description)}</div>`;
+                    if (phase.steps) c += '<div>' + phase.steps.map(s => `<div style="margin-left:8px">${esc(s)}</div>`).join('') + '</div>';
+                    c += '</div>';
+                });
+                if (gameData.quickReference.diceRules) {
+                    c += `<div style="margin-top:6px;border-top:1px solid #ccc;padding-top:4px">${esc(gameData.quickReference.diceRules)}</div>`;
+                }
+                html += refCard(esc(gameData.quickReference.title), c);
+            }
+
+            // 2. Character Templates
+            if (ps.characterTemplates && gameData.characterTemplates) {
+                let c = '<table class="ref-table"><thead><tr><th>Type</th><th>Lvl</th><th>Health</th><th>Pools</th><th>Dice</th><th>Abilities</th><th>Max Lvl</th><th>Slots</th></tr></thead><tbody>';
+                gameData.characterTemplates.forEach(t => {
+                    const typeName = esc(t.type.charAt(0).toUpperCase() + t.type.slice(1));
+                    const pools = t.skillDicePools ? `${t.skillDicePools.highCount}x${t.skillDicePools.high}d / ${t.skillDicePools.lowCount}x${t.skillDicePools.low}d` : 'Special';
+                    const dice = t.skillDiceTypes ? `${t.skillDiceTypes.highCount}x${t.skillDiceTypes.high} / ${t.skillDiceTypes.lowCount}x${t.skillDiceTypes.low}` : 'Special';
+                    c += `<tr><td>${typeName}</td><td>${esc(String(t.level))}</td><td>${esc(String(t.health))}</td><td>${esc(pools)}</td><td>${esc(dice)}</td><td>${esc(String(t.abilitySlots))}</td><td>${esc(String(t.maxAbilityLevel))}</td><td>${esc(String(t.rosterSlotCost))}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                html += refCard('Character Templates', c);
+            }
+
+            // 3. Weapons
+            if (ps.weapons && gameData.weapons) {
+                let c = '<div style="font-weight:bold;margin-bottom:4px;border-bottom:1px solid #ccc;padding-bottom:2px">Ranged</div>';
+                (gameData.weapons.ranged || []).forEach(w => {
+                    c += `<div style="margin-bottom:3px"><b>${esc(w.name)}</b> — ${esc(w.description)}</div>`;
+                });
+                c += '<div style="font-weight:bold;margin-top:8px;margin-bottom:4px;border-bottom:1px solid #ccc;padding-bottom:2px">Melee</div>';
+                (gameData.weapons.melee || []).forEach(w => {
+                    c += `<div style="margin-bottom:3px"><b>${esc(w.name)}</b> — ${esc(w.description)}</div>`;
+                });
+                html += refCard('Weapons', c);
+            }
+
+            // 4. Perks
+            if (ps.perks && gameData.perks) {
+                let c = '<div style="column-count:2;column-gap:12px">';
+                gameData.perks.forEach(p => {
+                    c += `<div style="break-inside:avoid;margin-bottom:3px"><b>${esc(p.name)}</b><span style="color:#666"> (${esc(String(p.slotCost))} slot${p.slotCost !== 1 ? 's' : ''}, ${esc(p.category)})</span> — ${esc(p.description)}</div>`;
+                });
+                c += '</div>';
+                html += refCard('Perks', c);
+            }
+
+            // 5. Genres
+            if (ps.genres && gameData.genres) {
+                const genresToShow = league.genre
+                    ? gameData.genres.filter(g => g.name === league.genre)
+                    : gameData.genres;
+                let c = '';
+                genresToShow.forEach(g => {
+                    c += `<div style="margin-bottom:8px"><div style="font-weight:bold;margin-bottom:2px">${esc(g.name)}</div>`;
+                    c += `<div style="margin-bottom:4px">${esc(g.description)}</div>`;
+                    (g.modifiers || []).forEach(mod => {
+                        c += `<div style="margin-left:10px;margin-bottom:2px"><b>${esc(mod.name)}</b> — ${esc(mod.description)}</div>`;
+                    });
+                    c += '</div>';
+                });
+                html += refCard('Genres', c);
+            }
+
+            // 6. Harrowing Escape
+            if (ps.harrowingEscape && gameData.harrowingEscape) {
+                let c = '<div style="font-weight:bold;margin-bottom:4px">Full Recovery</div>';
+                c += '<table class="ref-table" style="margin-bottom:10px"><thead><tr><th>Roll</th><th>Result</th><th>Effect</th></tr></thead><tbody>';
+                (gameData.harrowingEscape.fullRecovery || []).forEach(r => {
+                    c += `<tr><td>${esc(String(r.roll))}</td><td>${esc(r.result)}</td><td>${esc(r.effect)}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                c += '<div style="font-weight:bold;margin-bottom:4px">Critical Injury</div>';
+                c += '<table class="ref-table"><thead><tr><th>Roll</th><th>Result</th><th>Effect</th></tr></thead><tbody>';
+                (gameData.harrowingEscape.criticalInjury || []).forEach(r => {
+                    c += `<tr><td>${esc(String(r.roll))}</td><td>${esc(r.result)}</td><td>${esc(r.effect)}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                html += refCard('Harrowing Escape', c);
+            }
+
+            // 7. Reputation Table
+            if (ps.reputationTable && gameData.reputationTable) {
+                let c = '<table class="ref-table"><thead><tr><th>Rep</th><th>Milestone</th><th>Effect</th></tr></thead><tbody>';
+                gameData.reputationTable.forEach(r => {
+                    c += `<tr><td>${esc(String(r.threshold))}</td><td>${esc(r.name)}</td><td>${esc(r.description)}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                html += refCard('Reputation Milestones', c);
+            }
+
+            // 8. Secret Society
+            if (ps.secretSociety) {
+                const societyName = league.campaignState?.secretSociety;
+                if (societyName && gameData.secretSocieties) {
+                    const society = gameData.secretSocieties.find(s => s.name === societyName);
+                    if (society) {
+                        let c = '';
+                        (society.ranks || []).forEach(rank => {
+                            c += `<div style="margin-bottom:8px"><div style="font-weight:bold;margin-bottom:2px">Rank ${esc(String(rank.rank))} (Rep ${esc(String(rank.reputationRequired))}+)</div>`;
+                            (rank.perks || []).forEach(p => {
+                                c += `<div style="margin-left:10px;margin-bottom:2px"><b>${esc(p.name)}</b> — ${esc(p.description)}</div>`;
+                            });
+                            c += '</div>';
+                        });
+                        html += refCard(`Secret Society: ${esc(society.name)}`, c);
+                    }
+                }
+            }
+
+            // 9. Associate Abilities
+            if (ps.associateAbilities && gameData.associateAbilities) {
+                let c = '';
+                gameData.associateAbilities.forEach(a => {
+                    c += `<div style="margin-bottom:3px"><b>${esc(a.name)}</b> — ${esc(a.description)}</div>`;
+                });
+                html += refCard('Associate Abilities', c);
+            }
+
+            // 10. Resources Overview
+            if (ps.resourcesOverview && gameData.resourcesOverview) {
+                let c = `<div style="margin-bottom:6px">${esc(gameData.resourcesOverview.description)}</div>`;
+                c += '<div style="font-weight:bold;margin-bottom:4px;border-bottom:1px solid #ccc;padding-bottom:2px">Tips</div>';
+                (gameData.resourcesOverview.tips || []).forEach(t => {
+                    c += `<div style="margin-bottom:3px;margin-left:8px"><b>${esc(t.name)}</b> — ${esc(t.description)}</div>`;
+                });
+                c += '<div style="font-weight:bold;margin-top:6px;margin-bottom:4px;border-bottom:1px solid #ccc;padding-bottom:2px">Dominion</div>';
+                c += `<div style="margin-left:8px">${esc(gameData.resourcesOverview.dominion)}</div>`;
+                html += refCard('Resources Overview', c);
+            }
+
+            // 11. Contacts Assets
+            if (ps.contactsAssets && gameData.contactsAssets) {
+                let c = '<table class="ref-table"><thead><tr><th>Name</th><th>Cost</th><th>Description</th></tr></thead><tbody>';
+                gameData.contactsAssets.forEach(a => {
+                    c += `<tr><td>${esc(a.name)}</td><td>${esc(String(a.cost))}</td><td>${esc(a.description)}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                html += refCard('Contacts Assets', c);
+            }
+
+            // 12. Gear Assets
+            if (ps.gearAssets && gameData.gearAssets) {
+                let c = '<table class="ref-table"><thead><tr><th>Name</th><th>Cost</th><th>Description</th></tr></thead><tbody>';
+                gameData.gearAssets.forEach(a => {
+                    c += `<tr><td>${esc(a.name)}</td><td>${esc(String(a.cost))}</td><td>${esc(a.description)}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                html += refCard('Gear Assets', c);
+            }
+
+            // 13. Gadgets
+            if (ps.gadgets && gameData.gadgets) {
+                let c = `<div style="margin-bottom:6px;font-style:italic">${esc(gameData.gadgets.rules)}</div>`;
+                c += '<table class="ref-table"><thead><tr><th>Name</th><th>Cost</th><th>Description</th></tr></thead><tbody>';
+                (gameData.gadgets.assets || []).forEach(a => {
+                    c += `<tr><td>${esc(a.name)}</td><td>${esc(String(a.cost))}</td><td>${esc(a.description)}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                html += refCard('Gadgets', c);
+            }
+
+            // 14. Backup Characters
+            if (ps.backupCharacters && gameData.backupCharacters) {
+                let c = `<div style="margin-bottom:6px;font-style:italic">${esc(gameData.backupCharacters.rules)}</div>`;
+                c += '<table class="ref-table"><thead><tr><th>Name</th><th>Cost</th><th>Skills</th><th>Health</th></tr></thead><tbody>';
+                (gameData.backupCharacters.assets || []).forEach(a => {
+                    c += `<tr><td>${esc(a.name)}</td><td>${esc(String(a.cost))}</td><td>${esc(a.skills)}</td><td>${esc(String(a.health))}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                html += refCard('Backup Characters', c);
+            }
+
+            // 15. Mounts
+            if (ps.mounts && gameData.mounts) {
+                let c = `<div style="margin-bottom:6px;font-style:italic">${esc(gameData.mounts.rules)}</div>`;
+                (gameData.mounts.abilities || []).forEach(a => {
+                    c += `<div style="margin-bottom:3px"><b>${esc(a.name)}</b> (${esc(String(a.cost))} pt${a.cost !== 1 ? 's' : ''}) — ${esc(a.description)}</div>`;
+                });
+                html += refCard('Mounts', c);
+            }
+
+            // 16. Vehicles
+            if (ps.vehicles && gameData.vehicles) {
+                let c = `<div style="margin-bottom:6px;font-style:italic">${esc(gameData.vehicles.rules)}</div>`;
+                c += '<table class="ref-table" style="margin-bottom:8px"><thead><tr><th>Name</th><th>Size</th><th>Pass.</th><th>Reliability</th><th>Special</th><th>Cost</th></tr></thead><tbody>';
+                (gameData.vehicles.basic || []).forEach(v => {
+                    c += `<tr><td>${esc(v.name)}</td><td>${esc(String(v.size))}</td><td>${esc(String(v.passengers))}</td><td>${esc(String(v.reliability))}</td><td>${esc(v.special)}</td><td>${esc(String(v.cost))}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                c += '<div style="font-weight:bold;margin-bottom:4px">Special Rules</div>';
+                (gameData.vehicles.specials || []).forEach(s => {
+                    c += `<div style="margin-bottom:3px"><b>${esc(s.name)}</b> — ${esc(s.description)}</div>`;
+                });
+                html += refCard('Vehicles', c);
+            }
+
+            // 17. Minions
+            if (ps.minions && gameData.minions) {
+                let c = `<div style="margin-bottom:6px;font-style:italic">${esc(gameData.minions.rules)}</div>`;
+                c += '<table class="ref-table"><thead><tr><th>Name</th><th>Cost</th><th>Health</th><th>Skills</th><th>Abilities</th></tr></thead><tbody>';
+                (gameData.minions.assets || []).forEach(a => {
+                    c += `<tr><td>${esc(a.name)}</td><td>${esc(String(a.cost))}</td><td>${esc(String(a.health))}</td><td>${esc(a.skills)}</td><td>${esc(a.abilities)}</td></tr>`;
+                });
+                c += '</tbody></table>';
+                html += refCard('Minions', c);
+            }
+
+            // 18. Cult Assets
+            if (ps.cultAssets && gameData.cultAssets) {
+                let c = `<div style="margin-bottom:6px;font-style:italic">${esc(gameData.cultAssets.rules)}</div>`;
+                (gameData.cultAssets.assets || []).forEach(a => {
+                    c += `<div style="margin-bottom:3px"><b>${esc(a.name)}</b> (${esc(String(a.cost))}) — ${esc(a.description)}</div>`;
+                });
+                html += refCard('Cult Assets', c);
+            }
+
+            // 19. Gifts
+            if (ps.gifts && gameData.gifts) {
+                let c = `<div style="margin-bottom:6px;font-style:italic">${esc(gameData.gifts.rules)}</div>`;
+                (gameData.gifts.assets || []).forEach(a => {
+                    c += `<div style="margin-bottom:3px"><b>${esc(a.name)}</b> (${esc(String(a.cost))}) — ${esc(a.description)}</div>`;
+                });
+                html += refCard('Gifts', c);
+            }
+
+            return html;
+        };
+
         // ==========================================
         // 3. DATA LOADER COMPONENT
         // ==========================================
