@@ -401,6 +401,208 @@
             return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(league.name) + ' — League Roster</title><style>' + css + '</style></head><body>' + headerHTML + '<div class="cards">' + cardsHTML + '</div>' + associatesHTML + refHTML + '</body></html>';
         };
 
+        // ── buildHeader ──
+        const buildHeader = (league, gameData, activeGenre, usedSlots, totalSlots, esc) => {
+            let html = '<div class="header">';
+            // Header row: name + slots
+            html += '<div class="header-row">';
+            html += `<h1>${esc(league.name)}</h1>`;
+            html += `<span style="font-family:'Special Elite',monospace;font-size:11px;color:#5a4a2e">Slots: ${usedSlots}/${totalSlots}</span>`;
+            html += '</div>';
+            // Meta line: genre + perks
+            let meta = '';
+            if (league.genre) meta += `Genre: ${esc(league.genre)} | `;
+            if (league.perks.length > 0) meta += `Perks: ${esc(league.perks.join(', '))}`;
+            if (meta) html += `<div class="header-meta">${meta}</div>`;
+            // Genre modifier descriptions
+            if (activeGenre) {
+                html += '<div style="font-size:10px;font-family:\'Special Elite\',monospace;margin-top:4px;color:#555">';
+                html += `<div style="font-weight:bold;margin-bottom:2px">Genre: ${esc(activeGenre.name)}</div>`;
+                (activeGenre.modifiers || []).forEach(mod => {
+                    html += `<div style="margin-left:12px;margin-bottom:2px"><span style="font-weight:bold">${esc(mod.name)}</span> — ${esc(mod.description)}</div>`;
+                });
+                html += '</div>';
+            }
+            // Optional rules
+            const rules = league.optionalRules || {};
+            const coreDescriptions = {
+                weapons: 'Characters may equip weapons (Ranged and Melee). Each character may carry one weapon.',
+                supers: 'Allows Epic characters in the league roster. Epic characters cost 5 roster slots and have access to Epic Abilities.',
+            };
+            const allSettings = [
+                { key: 'weapons', label: 'Weapons', description: coreDescriptions.weapons },
+                { key: 'supers', label: 'Supers', description: coreDescriptions.supers },
+                ...(gameData.optionalSettings || []).map(s => ({ key: s.name, label: s.label, description: s.description })),
+            ];
+            const active = allSettings.filter(s => rules[s.key]);
+            if (active.length > 0) {
+                html += '<div style="font-size:10px;font-family:\'Special Elite\',monospace;margin-top:4px;color:#555">';
+                html += '<div style="font-weight:bold;margin-bottom:2px">Optional Rules:</div>';
+                active.forEach(s => {
+                    html += `<div style="margin-left:12px;margin-bottom:2px"><span style="font-weight:bold">${esc(s.label)}</span> — ${esc(s.description)}</div>`;
+                });
+                html += '</div>';
+            }
+            // Campaign state
+            const cs = league.campaignState;
+            if (cs) {
+                const hasData = cs.reputation > 0 || cs.xp > 0 || cs.secretSociety ||
+                    Object.values(cs.resources || {}).some(v => v > 0);
+                if (hasData) {
+                    let parts = [];
+                    if (cs.reputation > 0) parts.push(`Reputation: ${cs.reputation}`);
+                    if (cs.xp > 0) parts.push(`XP: ${cs.xp}`);
+                    Object.entries(cs.resources || {}).filter(([,v]) => v > 0).forEach(([k,v]) => {
+                        parts.push(`${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`);
+                    });
+                    if (cs.secretSociety) parts.push(`Society: ${esc(cs.secretSociety)}`);
+                    html += `<div style="font-size:11px;font-family:'Special Elite',monospace;margin-top:4px;border-top:1px solid #ccc;padding-top:4px">${parts.join(' | ')}</div>`;
+                }
+            }
+            html += '</div>';
+            return html;
+        };
+
+        // ── buildCards ──
+        const buildCards = (league, gameData, activeGenre, allAbPool, COMBAT_SKILLS, ACTION_SKILLS, HEALTH_TRACK, getHealthDie, esc) => {
+            let html = '';
+            league.characters.forEach(character => {
+                const template = getTemplate(gameData, character.type);
+                const skills = computeCharacterSkills(character, gameData, activeGenre);
+                const healthDie = getHealthDie(character, template);
+                const healthTrack = HEALTH_TRACK[healthDie] || HEALTH_TRACK['d6'];
+                const isActingLeader = league.actingLeaderId === character.id;
+
+                const allAbs = [...(character.abilities || []), ...(character.freeAbilities || [])];
+                const abDetails = allAbs.map(aName => {
+                    const ab = allAbPool.find(a => a.name === aName);
+                    const flavour = character.abilityFlavourNames?.[aName];
+                    const isFree = (character.freeAbilities || []).includes(aName);
+                    return { name: aName, flavour, description: ab?.description || '', isFree };
+                });
+
+                html += '<div class="card">';
+
+                // Card header: type + name
+                html += '<div class="card-header">';
+                html += `<span class="type">${esc(LEVEL_LABELS[character.type])}${isActingLeader ? ' (Leader)' : ''}:</span>`;
+                html += `<span class="name">${esc(character.name || 'Unnamed')}</span>`;
+                html += '</div>';
+
+                // Card body: image + skills
+                html += '<div class="card-body">';
+
+                // Left: image
+                html += '<div class="card-img">';
+                if (character.image) {
+                    html += `<img src="${character.image}" />`;
+                } else {
+                    html += '<div class="placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a89060" stroke-width="1" stroke-linecap="round"><circle cx="12" cy="8" r="5"/><path d="M3 21c0-4.97 4.03-9 9-9s9 4.03 9 9"/></svg></div>';
+                }
+                // Gang models count
+                if (character.type === 'gang') {
+                    const gangModels = allAbs.includes('Sixth-Man') ? 6 : 5;
+                    html += `<div style="font-size:7px;color:#5a4a2e;margin-top:2px;text-align:center">Models: ${gangModels}</div>`;
+                }
+                html += '</div>';
+
+                // Right: skills
+                if (skills) {
+                    html += '<div style="flex:1">';
+                    // Combat skills
+                    html += '<div class="combat-box">';
+                    COMBAT_SKILLS.forEach(skill => {
+                        html += `<div class="skill-row"><span class="combat-label">${skill}</span><span style="font-weight:bold">${skills[skill]?.display || '\u2014'}</span></div>`;
+                    });
+                    html += '</div>';
+                    // Action skills
+                    html += '<div class="action-box">';
+                    ACTION_SKILLS.forEach(skill => {
+                        html += `<div class="skill-row"><span class="action-label">${skill}</span><span style="font-weight:bold">${skills[skill]?.display || '\u2014'}</span></div>`;
+                    });
+                    html += '</div>';
+                    html += '</div>';
+                }
+                html += '</div>'; // end card-body
+
+                // Weapon row
+                if (character.weapon) {
+                    const allWeapons = [...(gameData.weapons?.ranged||[]).map(w=>({...w,group:'Ranged'})), ...(gameData.weapons?.melee||[]).map(w=>({...w,group:'Melee'}))];
+                    const wpn = allWeapons.find(w => w.name === character.weapon);
+                    html += '<div class="weapon-row">';
+                    html += `<span style="font-weight:bold;color:#8b1a1a">${esc(character.weapon)}</span>`;
+                    if (wpn) html += `<span style="color:#5a4a2e"> (${esc(wpn.group)}): ${esc(wpn.description)}</span>`;
+                    html += '</div>';
+                }
+
+                // Abilities
+                html += '<div class="abilities">';
+                if (abDetails.length > 0) {
+                    abDetails.forEach(ab => {
+                        html += '<div style="margin-bottom:1px">';
+                        html += `<span style="font-weight:bold">${esc(ab.flavour ? ab.flavour : ab.name)}</span>`;
+                        if (ab.flavour) html += `<span style="color:#7a6a4e"> (${esc(ab.name)})</span>`;
+                        if (ab.isFree) html += '<span style="color:#2a6e5a"> [free]</span>';
+                        html += `: <span style="color:#5a4a2e">${esc(ab.description)}</span>`;
+                        html += '</div>';
+                    });
+                } else {
+                    html += '<div style="color:#a89060;font-style:italic">No abilities</div>';
+                }
+                html += '</div>';
+
+                // Health track (non-gang)
+                if (healthTrack.length > 0) {
+                    html += '<div class="health-track">';
+                    html += '<span class="health-label">Health:</span>';
+                    html += '<div style="display:flex;flex:1">';
+                    healthTrack.forEach((state, i) => {
+                        const isDown = state === 'Down';
+                        const isOut = state === 'Out';
+                        let cls = 'health-cell';
+                        if (isOut) cls += ' health-out';
+                        else if (isDown) cls += ' health-down';
+                        const borderLeft = i > 0 ? 'border-left:1px solid #a89060;' : '';
+                        html += `<div class="${cls}" style="${borderLeft}">${state}</div>`;
+                    });
+                    html += '</div></div>';
+                }
+
+                // Gang KO info (replaces health track)
+                if (character.type === 'gang') {
+                    const allGangAbs = [...(character.abilities || []), ...(character.freeAbilities || [])];
+                    const hasLoyal = allGangAbs.includes('Loyal');
+                    const koThreshold = hasLoyal ? '\u22641 model' : '\u22642 models';
+                    html += '<div class="health-track" style="padding:2px 4px">';
+                    html += '<span style="font-weight:bold;font-size:7px;color:#8b1a1a;white-space:nowrap;margin-right:4px">KO:</span>';
+                    html += `<span style="font-size:7px;color:#2a1f0e">Knocked out at ${koThreshold}</span>`;
+                    html += '</div>';
+                }
+
+                html += '</div>'; // end card
+            });
+            return html;
+        };
+
+        // ── buildAssociates ──
+        const buildAssociates = (league, gameData, esc) => {
+            if (!league.associates || league.associates.length === 0) return '';
+            let html = '<div class="associates">';
+            html += '<h2>Associates</h2>';
+            league.associates.forEach(assoc => {
+                html += '<div style="margin-bottom:6px;font-size:10px;font-family:\'Special Elite\',monospace">';
+                html += `<span style="font-weight:bold">${esc(assoc.name || 'Unnamed')}: </span>`;
+                const parts = (assoc.abilities || []).map(aName => {
+                    const ab = (gameData.associateAbilities || []).find(a => a.name === aName);
+                    return esc(aName) + (ab ? ` \u2014 ${esc(ab.description)}` : '');
+                });
+                html += parts.join(' | ');
+                html += '</div>';
+            });
+            html += '</div>';
+            return html;
+        };
+
         // ==========================================
         // 3. DATA LOADER COMPONENT
         // ==========================================
